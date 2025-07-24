@@ -1,3 +1,4 @@
+
 import {
   Card,
   CardContent,
@@ -41,7 +42,7 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>Configure Features</Button>
+            <Button disabled>Configure Features</Button>
           </CardContent>
         </Card>
         <Card>
@@ -87,7 +88,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>Manage Scanners</Button>
+            <Button asChild>
+                <Link href="/admin/scanners">Manage Scanners</Link>
+            </Button>
           </CardContent>
         </Card>
         <Card>

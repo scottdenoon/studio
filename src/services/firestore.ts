@@ -282,6 +282,53 @@ export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promi
 }
 
 
+// --- Scanner Management ---
+export interface Scanner {
+    id?: string;
+    name: string;
+    description: string;
+    criteria: {
+        minVolume?: number;
+        minRelativeVolume?: number;
+        minPrice?: number;
+        maxPrice?: number;
+        minMarketCap?: number;
+        maxMarketCap?: number;
+        newsRequired?: boolean;
+    };
+    isActive: boolean;
+    createdAt?: string;
+}
+
+export async function getScanners(): Promise<Scanner[]> {
+    const scannerCol = db.collection('scanners');
+    const q = scannerCol.orderBy("createdAt", "desc");
+    const scannerSnapshot = await q.get();
+    const scanners: Scanner[] = [];
+    scannerSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        scanners.push({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt.toDate().toISOString(),
+        } as Scanner);
+    });
+    return scanners;
+}
+
+export async function saveScanner(scanner: Omit<Scanner, 'id' | 'createdAt'>): Promise<string> {
+    const docRef = await db.collection('scanners').add({
+        ...scanner,
+        createdAt: Timestamp.now(),
+    });
+    return docRef.id;
+}
+
+export async function updateScanner(id: string, scanner: Partial<Scanner>): Promise<void> {
+    await db.collection('scanners').doc(id).update(scanner);
+}
+
+
 // --- DB Test ---
 export async function addTestDocument(): Promise<string> {
     const docData = {
