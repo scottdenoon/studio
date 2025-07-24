@@ -249,7 +249,7 @@ export default function NewsSourceManagementPage() {
             <CardHeader>
                 <CardTitle>Feed Status</CardTitle>
                 <CardDescription>Live status of your active news feeds.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent className="space-y-4">
                <Button onClick={handleFetchNews} disabled={fetching} className="w-full">
                 {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
