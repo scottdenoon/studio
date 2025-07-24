@@ -60,6 +60,7 @@ export default function UserManagementPage() {
   }, [toast]);
 
   const formatLastSeen = (dateString: string) => {
+    if (!dateString) return "Never";
     return `${formatDistanceToNow(new Date(dateString))} ago`;
   }
 

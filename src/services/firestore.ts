@@ -118,7 +118,9 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(doc => {
         const data = doc.data();
-        const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString();
+        const timestamp = data.timestamp instanceof Timestamp 
+            ? data.timestamp.toDate().toISOString() 
+            : (typeof data.timestamp === 'string' ? data.timestamp : new Date().toISOString());
         newsFeed.push({
             id: doc.id,
             ticker: data.ticker,
@@ -134,7 +136,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
-        timestamp: Timestamp.fromDate(new Date()),
+        timestamp: new Date().toISOString(),
     });
     return docRef.id;
 }
@@ -153,8 +155,8 @@ export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen' |
     const now = new Date();
     const userProfile = {
       ...user,
-      createdAt: now,
-      lastSeen: now,
+      createdAt: now.toISOString(),
+      lastSeen: now.toISOString(),
     };
     await setDoc(doc(db, "users", user.uid), userProfile);
 }
@@ -167,8 +169,8 @@ export async function getUsers(): Promise<UserProfile[]> {
     userSnapshot.forEach(doc => {
         const data = doc.data();
         // Ensure timestamps are correctly converted to ISO strings
-        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString();
-        const lastSeen = data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : new Date().toISOString();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString());
+        const lastSeen = data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : (data.lastSeen || new Date().toISOString());
 
         users.push({
             uid: data.uid,
