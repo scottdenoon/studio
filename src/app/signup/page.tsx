@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { signUpWithEmailAndPassword, signInWithGoogle } from '@/services/auth'
+import { signUpWithEmailAndPasswordClient, signInWithGoogle } from '@/services/auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -60,7 +60,7 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     setLoading(true)
     try {
-      await signUpWithEmailAndPassword(data.email, data.password)
+      await signUpWithEmailAndPasswordClient(data.email, data.password)
       router.push('/')
     } catch (error: any) {
       console.error('Signup failed:', error)
