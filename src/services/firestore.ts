@@ -101,7 +101,7 @@ export interface NewsItem {
     ticker: string;
     headline: string;
     content: string;
-    timestamp: string; // Changed to string for serialization
+    timestamp: string;
     momentum: {
         volume: string;
         relativeVolume: number;
@@ -118,30 +118,30 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(doc => {
         const data = doc.data();
-        // Ensure timestamp is a serializable string
-        const timestamp = data.timestamp instanceof Timestamp
-            ? data.timestamp.toDate().toISOString()
-            : (typeof data.timestamp === 'string' ? data.timestamp : new Date().toISOString());
-
-        newsFeed.push({
+        
+        // Explicitly create a plain object and convert Timestamp to string
+        const plainObject: NewsItem = {
             id: doc.id,
             ticker: data.ticker,
             headline: data.headline,
             content: data.content,
             momentum: data.momentum,
-            timestamp: timestamp,
-        });
+            timestamp: (data.timestamp as Timestamp).toDate().toISOString(),
+        };
+        newsFeed.push(plainObject);
     });
     return newsFeed;
 }
 
+
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
-        timestamp: new Date().toISOString(), // Store as a string
+        timestamp: Timestamp.fromDate(new Date()),
     });
     return docRef.id;
 }
+
 
 // --- User Management ---
 
@@ -160,7 +160,7 @@ export interface NewUserProfile {
 }
 
 export async function addUser(user: NewUserProfile): Promise<void> {
-    const now = new Date().toISOString();
+    const now = Timestamp.fromDate(new Date());
     await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         role: user.role,
@@ -168,6 +168,7 @@ export async function addUser(user: NewUserProfile): Promise<void> {
         lastSeen: now,
     });
 }
+
 
 export async function getUsers(): Promise<UserProfile[]> {
     const usersCol = collection(db, 'users');
@@ -177,21 +178,15 @@ export async function getUsers(): Promise<UserProfile[]> {
     userSnapshot.forEach(doc => {
         const data = doc.data();
         
-        // Ensure createdAt and lastSeen are serializable strings
-        const createdAt = data.createdAt instanceof Timestamp 
-            ? data.createdAt.toDate().toISOString() 
-            : (data.createdAt || new Date().toISOString());
-        const lastSeen = data.lastSeen instanceof Timestamp 
-            ? data.lastSeen.toDate().toISOString() 
-            : (data.lastSeen || new Date().toISOString());
-
-        users.push({
+        // Explicitly create a plain object and convert Timestamps to strings
+        const plainObject: UserProfile = {
             uid: doc.id,
             email: data.email,
             role: data.role,
-            createdAt: createdAt,
-            lastSeen: lastSeen,
-        });
+            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+            lastSeen: (data.lastSeen as Timestamp).toDate().toISOString(),
+        };
+        users.push(plainObject);
     });
     return users;
 }
