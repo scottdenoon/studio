@@ -100,7 +100,7 @@ export interface NewsItem {
     ticker: string;
     headline: string;
     content: string;
-    timestamp: Date;
+    timestamp: string; // Changed to string for serialization
     momentum: {
         volume: string;
         relativeVolume: number;
@@ -117,10 +117,14 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(doc => {
         const data = doc.data();
+        const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString();
         newsFeed.push({
             id: doc.id,
-            ...data,
-            timestamp: data.timestamp.toDate(),
+            ticker: data.ticker,
+            headline: data.headline,
+            content: data.content,
+            momentum: data.momentum,
+            timestamp: timestamp,
         } as NewsItem);
     });
     return newsFeed;
