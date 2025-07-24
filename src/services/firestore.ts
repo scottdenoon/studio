@@ -116,17 +116,15 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const q = query(newsCol, orderBy("timestamp", "desc"));
     const newsSnapshot = await getDocs(q);
     const newsFeed: NewsItem[] = [];
-    newsSnapshot.forEach(doc => {
-        const data = doc.data();
-        
-        // Explicitly create a plain object and convert Timestamp to string
+    newsSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
         const plainObject: NewsItem = {
-            id: doc.id,
+            id: docSnap.id,
             ticker: data.ticker,
             headline: data.headline,
             content: data.content,
             momentum: data.momentum,
-            timestamp: (data.timestamp as Timestamp).toDate().toISOString(),
+            timestamp: data.timestamp, // Already a string
         };
         newsFeed.push(plainObject);
     });
@@ -137,7 +135,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
-        timestamp: Timestamp.fromDate(new Date()),
+        timestamp: new Date().toISOString(),
     });
     return docRef.id;
 }
@@ -154,37 +152,52 @@ export interface UserProfile {
 }
 
 export interface NewUserProfile {
-    uid: string;
     email: string;
     role: 'admin' | 'basic';
 }
 
-export async function addUser(user: NewUserProfile): Promise<void> {
-    const now = Timestamp.fromDate(new Date());
-    await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        role: user.role,
+export async function addUser(uid: string, user: NewUserProfile): Promise<void> {
+    const now = new Date().toISOString();
+    await setDoc(doc(db, "users", uid), {
+        ...user,
         createdAt: now,
         lastSeen: now,
     });
 }
 
 
+export async function getUser(uid: string): Promise<UserProfile | null> {
+    const docRef = doc(db, "users", uid);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+        return null;
+    }
+
+    const data = docSnap.data();
+    const plainObject: UserProfile = {
+        uid: docSnap.id,
+        email: data.email,
+        role: data.role,
+        createdAt: data.createdAt,
+        lastSeen: data.lastSeen,
+    };
+    return plainObject;
+}
+
 export async function getUsers(): Promise<UserProfile[]> {
     const usersCol = collection(db, 'users');
     const q = query(usersCol, orderBy("createdAt", "desc"));
     const userSnapshot = await getDocs(q);
     const users: UserProfile[] = [];
-    userSnapshot.forEach(doc => {
-        const data = doc.data();
-        
-        // Explicitly create a plain object and convert Timestamps to strings
+    userSnapshot.forEach(docSnap => {
+        const data = docSnap.data();
         const plainObject: UserProfile = {
-            uid: doc.id,
+            uid: docSnap.id,
             email: data.email,
             role: data.role,
-            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-            lastSeen: (data.lastSeen as Timestamp).toDate().toISOString(),
+            createdAt: data.createdAt, // Already a string
+            lastSeen: data.lastSeen,   // Already a string
         };
         users.push(plainObject);
     });

@@ -6,10 +6,12 @@ import { auth, db } from '@/lib/firebase';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
+    signInWithPopup,
+    GoogleAuthProvider,
     signOut,
     type User
 } from 'firebase/auth';
-import { addUser, NewUserProfile } from './firestore';
+import { addUser, getUser, NewUserProfile } from './firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
 export async function signUpWithEmailAndPassword(email: string, password: string): Promise<User> {
@@ -19,15 +21,15 @@ export async function signUpWithEmailAndPassword(email: string, password: string
     // Check if this is the first user
     const usersCollection = collection(db, 'users');
     const userSnapshot = await getDocs(usersCollection);
-    const isFirstUser = userSnapshot.empty;
+    // Subtract 1 because we just created a new user
+    const isFirstUser = userSnapshot.size -1 === 0;
     
     // Create a corresponding user profile in Firestore
     const newUserProfile: NewUserProfile = {
-        uid: user.uid,
         email: user.email!,
         role: isFirstUser ? 'admin' : 'basic', // Assign 'admin' role if first user
     };
-    await addUser(newUserProfile);
+    await addUser(user.uid, newUserProfile);
 
     return user;
 }
@@ -36,6 +38,31 @@ export async function logInWithEmailAndPassword(email: string, password: string)
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
 }
+
+export async function signInWithGoogle(): Promise<User> {
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    const user = userCredential.user;
+
+    // Check if the user already exists in Firestore
+    const userProfile = await getUser(user.uid);
+    if (!userProfile) {
+        // If not, this is a new user, so create a profile
+        const usersCollection = collection(db, 'users');
+        const userSnapshot = await getDocs(usersCollection);
+        // Subtract 1 because we just created a new user
+        const isFirstUser = userSnapshot.size - 1 === 0;
+
+        const newUserProfile: NewUserProfile = {
+            email: user.email!,
+            role: isFirstUser ? 'admin' : 'basic',
+        };
+        await addUser(user.uid, newUserProfile);
+    }
+    
+    return user;
+}
+
 
 export async function logOut(): Promise<void> {
     await signOut(auth);
