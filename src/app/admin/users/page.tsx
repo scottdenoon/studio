@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, PlusCircle, UserPlus, Info } from "lucide-react";
+import { MoreHorizontal, UserPlus, Info } from "lucide-react";
 import { getUsers, UserProfile, addSampleUsers } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
