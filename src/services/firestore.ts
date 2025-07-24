@@ -151,10 +151,12 @@ export interface UserProfile {
     lastSeen: string; // Changed to string for serialization
 }
 
-export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'role'> & { role: 'admin' | 'basic' }): Promise<void> {
+export async function addUser(user: { uid: string, email: string, role: 'admin' | 'basic' }): Promise<void> {
     const now = new Date().toISOString();
     const userProfile = {
-      ...user,
+      uid: user.uid,
+      email: user.email,
+      role: user.role,
       createdAt: now,
       lastSeen: now,
     };
