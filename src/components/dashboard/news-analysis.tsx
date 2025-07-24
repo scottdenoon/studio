@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from '@/ai/flows/analyze-news-sentiment';
+import { analyzeNewsSentiment, AnalyzeNewsSentimentOutput, AnalyzeNewsSentimentInput } from '@/ai/flows/analyze-news-sentiment';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -23,6 +23,10 @@ const newsAnalysisSchema = z.object({
 
 type NewsAnalysisFormValues = z.infer<typeof newsAnalysisSchema>;
 
+interface NewsAnalysisProps {
+  selectedNews: AnalyzeNewsSentimentInput | null;
+}
+
 const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
   if (sentiment.toLowerCase() === 'positive') {
     return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-4 w-4" /> Positive ({impactScore.toFixed(2)})</Badge>;
@@ -34,7 +38,7 @@ const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impac
 };
 
 
-export default function NewsAnalysis() {
+export default function NewsAnalysis({ selectedNews }: NewsAnalysisProps) {
   const [analysis, setAnalysis] = useState<AnalyzeNewsSentimentOutput | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +47,9 @@ export default function NewsAnalysis() {
   const form = useForm<NewsAnalysisFormValues>({
     resolver: zodResolver(newsAnalysisSchema),
     defaultValues: {
-      ticker: "AAPL",
-      headline: "Apple Unveils Breakthrough M4 Chip with Advanced AI Capabilities",
-      content: "Today, Apple announced its next-generation M4 processor, promising significant performance boosts and dedicated hardware for on-device artificial intelligence. The new chip is expected to power the next lineup of Macs and iPads, potentially driving a new upgrade cycle for the tech giant.",
+      ticker: "",
+      headline: "",
+      content: "",
     },
   });
 
@@ -71,12 +75,19 @@ export default function NewsAnalysis() {
     }
   };
 
+  useEffect(() => {
+    if (selectedNews) {
+      form.reset(selectedNews);
+      onSubmit(selectedNews);
+    }
+  }, [selectedNews]);
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI News Sentiment Analysis</CardTitle>
         <CardDescription>
-          Analyze news articles to determine sentiment and potential impact on a stock's price.
+          Click a story from the feed or enter details below to analyze sentiment and potential impact.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -137,10 +148,16 @@ export default function NewsAnalysis() {
           </form>
         </Form>
       </CardContent>
-      {(analysis || error) && (
+      {(analysis || error || loading) && (
         <CardFooter className="flex-col items-start gap-4">
           <Separator />
-          {analysis && (
+           {loading && (
+             <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Analyzing sentiment...</span>
+            </div>
+           )}
+          {analysis && !loading &&(
             <div className="space-y-4 w-full">
               <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-lg">Analysis Result</h3>
@@ -149,7 +166,7 @@ export default function NewsAnalysis() {
               <p className="text-sm text-foreground/80">{analysis.summary}</p>
             </div>
           )}
-          {error && (
+          {error && !loading && (
             <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-4 w-full">
               <AlertTriangle className="h-6 w-6 shrink-0" />
               <div>
