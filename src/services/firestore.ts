@@ -4,6 +4,7 @@
 
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -520,13 +521,20 @@ export async function getJournalEntries(userId: string): Promise<TradeJournalEnt
     const entries: TradeJournalEntry[] = [];
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        entries.push({
+        const plainObject: TradeJournalEntry = {
             id: docSnap.id,
-            ...data,
+            userId: data.userId,
+            ticker: data.ticker,
             entryDate: data.entryDate.toDate().toISOString(),
             exitDate: data.exitDate.toDate().toISOString(),
+            entryPrice: data.entryPrice,
+            exitPrice: data.exitPrice,
+            quantity: data.quantity,
+            notes: data.notes,
+            imageUrl: data.imageUrl,
             createdAt: data.createdAt.toDate().toISOString(),
-        } as TradeJournalEntry);
+        };
+        entries.push(plainObject);
     });
     return entries;
 }
