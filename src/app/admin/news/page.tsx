@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -22,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, CheckCircle, Rss } from "lucide-react"
+import { Loader2, Edit, CheckCircle, Rss, Info } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -49,12 +50,15 @@ import {
   fetchNewsFromSources,
 } from "./actions"
 import { Separator } from "@/components/ui/separator"
+import Link from "next/link"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 const newsSourceSchema = z.object({
   name: z.string().min(3, "Name is required"),
   type: z.enum(["API", "WebSocket"]),
   url: z.string().url("Must be a valid URL"),
   isActive: z.boolean().default(true),
+  apiKeyEnvVar: z.string().optional(),
 })
 
 type NewsSourceFormValues = z.infer<typeof newsSourceSchema>
@@ -74,6 +78,7 @@ export default function NewsSourceManagementPage() {
       type: "API",
       url: "",
       isActive: true,
+      apiKeyEnvVar: "",
     },
   })
 
@@ -143,6 +148,7 @@ export default function NewsSourceManagementPage() {
       type: "API",
       url: "",
       isActive: true,
+      apiKeyEnvVar: "",
     })
   }
 
@@ -220,6 +226,14 @@ export default function NewsSourceManagementPage() {
                     <FormMessage />
                   </FormItem>
                 )} />
+                <FormField control={form.control} name="apiKeyEnvVar" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>API Key Variable (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g. NEWS_API_KEY_1" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
                 <FormField control={form.control} name="isActive" render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
@@ -278,6 +292,14 @@ export default function NewsSourceManagementPage() {
       </div>
 
       <div className="md:col-span-2">
+        <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Managing API Keys</AlertTitle>
+            <AlertDescription>
+                API keys are stored as server-side environment variables for security. You can add them in your Firebase App Hosting settings.
+                <Button variant="link" asChild className="p-0 h-auto ml-1"><Link href="/admin/api-keys">Learn More</Link></Button>
+            </AlertDescription>
+        </Alert>
         <Card>
           <CardHeader>
             <CardTitle>Configured News Sources</CardTitle>

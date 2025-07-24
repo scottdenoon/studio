@@ -15,6 +15,7 @@ export interface NewsSource {
   url: string;
   isActive: boolean;
   createdAt: string;
+  apiKeyEnvVar?: string;
 }
 
 export async function getNewsSources(): Promise<NewsSource[]> {
@@ -64,7 +65,19 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
 
     for (const source of activeSources) {
         try {
-            const response = await fetch(source.url);
+            let url = source.url;
+            if (source.apiKeyEnvVar) {
+                const apiKey = process.env[source.apiKeyEnvVar];
+                if (apiKey) {
+                    // Check if URL already has query params
+                    const separator = url.includes('?') ? '&' : '?';
+                    url = `${url}${separator}apiKey=${apiKey}`;
+                } else {
+                    await logActivity("WARN", `API key environment variable "${source.apiKeyEnvVar}" not set for source: ${source.name}.`);
+                }
+            }
+
+            const response = await fetch(url);
             const rawData = await response.text();
             
             await logActivity("INFO", `Fetched from source: ${source.name}`, { 
