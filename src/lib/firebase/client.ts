@@ -5,6 +5,7 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// IMPORTANT: Your .env file must be populated with credentials prefixed with NEXT_PUBLIC_
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -13,20 +14,6 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
-
-// Check that all required environment variables are set. This is a common source of errors.
-if (
-    !firebaseConfig.apiKey ||
-    !firebaseConfig.authDomain ||
-    !firebaseConfig.projectId ||
-    !firebaseConfig.storageBucket ||
-    !firebaseConfig.messagingSenderId ||
-    !firebaseConfig.appId
-) {
-    // It's better to throw an error here to catch missing configuration during development.
-    // In a production environment, these variables should be set in your hosting provider's settings.
-    throw new Error("Missing Firebase configuration. Make sure all NEXT_PUBLIC_FIREBASE_* environment variables are set.");
-}
 
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
