@@ -12,8 +12,6 @@ function initializeFirebaseAdmin() {
   try {
     const serviceAccountKey = process.env.GOOGLE_APPLICATION_CREDENTIALS;
     if (serviceAccountKey) {
-        // In a deployed environment, GOOGLE_APPLICATION_CREDENTIALS should be a path
-        // In some setups, it might be the JSON content itself. This handles both.
         const credentials = JSON.parse(
             Buffer.from(serviceAccountKey, 'base64').toString('ascii')
         );
