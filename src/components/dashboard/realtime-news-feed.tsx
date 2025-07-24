@@ -9,23 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Badge } from "@/components/ui/badge";
 import { AnalyzeNewsSentimentInput, analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown, List, LayoutGrid } from "lucide-react";
+import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 interface NewsItemData extends AnalyzeNewsSentimentInput {
@@ -149,7 +140,6 @@ const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impac
 export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItemWithAnalysis[]>([]);
-  const [view, setView] = useState<"card" | "table">("card");
 
   useEffect(() => {
     const initialNewsItems: NewsItemWithAnalysis[] = mockNewsData.map(item => ({...item, loading: true}));
@@ -196,34 +186,9 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
               Breaking market news with real-time AI momentum analysis.
             </CardDescription>
         </div>
-        <TooltipProvider>
-            <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Button variant={view === 'card' ? 'outline' : 'ghost'} size="icon" className="h-8 w-8 bg-background" onClick={() => setView('card')}>
-                            <LayoutGrid className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Card View</p>
-                    </TooltipContent>
-                 </Tooltip>
-                 <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant={view === 'table' ? 'outline' : 'ghost'} size="icon" className="h-8 w-8 bg-background" onClick={() => setView('table')}>
-                            <List className="h-4 w-4" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Table View</p>
-                    </TooltipContent>
-                </Tooltip>
-            </div>
-        </TooltipProvider>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px]">
-          {view === "card" ? (
             <div className="space-y-2">
                 {newsItems.map((news, index) => (
                 <Collapsible key={index} onOpenChange={() => handleNewsClick(news)} className={cn(
@@ -268,30 +233,6 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
                 </Collapsible>
                 ))}
             </div>
-            ) : (
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead>Ticker</TableHead>
-                    <TableHead>Headline</TableHead>
-                    <TableHead className="text-right">Impact</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {newsItems.map((news) => (
-                    <TableRow key={news.headline} onClick={() => handleNewsClick(news)} className={cn("cursor-pointer", selectedItem === news.headline && "bg-muted")}>
-                        <TableCell><Badge variant="outline">{news.ticker}</Badge></TableCell>
-                        <TableCell className="font-medium">{news.headline}</TableCell>
-                        <TableCell className="text-right">
-                         {news.loading && <div className="flex justify-end"><Loader2 className="h-4 w-4 animate-spin"/></div>}
-                         {news.error && <div className="flex justify-end text-destructive"><AlertTriangle className="h-4 w-4"/></div>}
-                         {news.analysis && <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />}
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-          )}
         </ScrollArea>
       </CardContent>
     </Card>
