@@ -10,34 +10,37 @@ import {
     signOut,
     type User
 } from 'firebase/auth';
-import { addUserProfile } from './firestore';
+import { addUserProfile, UserProfile } from './firestore';
 
-export async function signUpWithEmailAndPasswordClient(email: string, password: string): Promise<User> {
+interface AuthResult {
+    user: User;
+    userProfile: UserProfile;
+}
+
+export async function signUpWithEmailAndPasswordClient(email: string, password: string): Promise<AuthResult> {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // After creating the user in Auth, create their profile in Firestore.
-    // This is a server action and is now called correctly.
-    await addUserProfile({ email: user.email!, uid: user.uid });
+    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid });
 
-    return user;
+    return { user, userProfile };
 }
 
-export async function signInWithEmailAndPasswordClient(email: string, password: string): Promise<User> {
+export async function signInWithEmailAndPasswordClient(email: string, password: string): Promise<AuthResult> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
+    const user = userCredential.user;
+    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid });
+    return { user, userProfile };
 }
 
-export async function signInWithGoogle(): Promise<User> {
+export async function signInWithGoogle(): Promise<AuthResult> {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
 
-    // After a Google sign-in, create or update their profile in Firestore.
-    // This is a server action and is now called correctly.
-    await addUserProfile({ email: user.email!, uid: user.uid, photoURL: user.photoURL });
+    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid, photoURL: user.photoURL });
     
-    return user;
+    return { user, userProfile };
 }
 
 

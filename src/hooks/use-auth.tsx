@@ -12,6 +12,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   signOut: () => void;
+  setRehydratedProfile: (profile: UserProfile) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
   userProfile: null,
   loading: true,
   signOut: () => {},
+  setRehydratedProfile: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -27,12 +29,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const setRehydratedProfile = (profile: UserProfile) => {
+    setUserProfile(profile);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        const profile = await getUser(user.uid);
-        setUserProfile(profile);
+        // If profile is already set by a recent login/signup, don't refetch
+        if (!userProfile || userProfile.uid !== user.uid) {
+          const profile = await getUser(user.uid);
+          setUserProfile(profile);
+        }
       } else {
         setUserProfile(null);
       }
@@ -40,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [userProfile]);
 
   const signOut = async () => {
     try {
@@ -53,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const value = { user, userProfile, loading, signOut };
+  const value = { user, userProfile, loading, signOut, setRehydratedProfile };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
@@ -61,5 +70,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   return useContext(AuthContext);
 };
-
-    

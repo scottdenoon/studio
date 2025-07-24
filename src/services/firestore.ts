@@ -222,36 +222,46 @@ export interface NewUserProfile {
     photoURL?: string | null;
 }
 
-export async function addUserProfile(data: NewUserProfile): Promise<void> {
+export async function addUserProfile(data: NewUserProfile): Promise<UserProfile> {
     const userRef = db.collection("users").doc(data.uid);
     const userDoc = await userRef.get();
     const now = Timestamp.now();
+    
+    let userProfileData: Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
 
     if (userDoc.exists) {
-        await userRef.update({ 
+        const existingData = userDoc.data()!;
+        const updateData = { 
             lastSeen: now,
-            photoURL: data.photoURL || userDoc.data()?.photoURL || null
-        });
+            photoURL: data.photoURL || existingData.photoURL || null
+        };
+        await userRef.update(updateData);
         await logActivity("INFO", `User signed in: ${data.email}`, { uid: data.uid });
-        return;
+        userProfileData = { ...existingData, ...updateData } as Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
+    } else {
+        const usersCol = db.collection('users');
+        const userSnapshot = await usersCol.limit(3).get();
+        const isEarlyUser = userSnapshot.size < 3;
+        const role = isEarlyUser ? 'admin' : 'basic';
+
+        userProfileData = {
+            email: data.email,
+            uid: data.uid,
+            photoURL: data.photoURL || null,
+            role: role,
+            createdAt: now,
+            lastSeen: now,
+        };
+        
+        await userRef.set(userProfileData);
+        await logActivity("INFO", `New user profile created: ${data.email}`, { uid: data.uid, role });
     }
-
-    const usersCol = db.collection('users');
-    const userSnapshot = await usersCol.limit(3).get();
-    const isEarlyUser = userSnapshot.size < 3;
-    const role = isEarlyUser ? 'admin' : 'basic';
-
-    const newUserProfile = {
-        email: data.email,
-        uid: data.uid,
-        photoURL: data.photoURL || null,
-        role: role,
-        createdAt: now,
-        lastSeen: now,
-    };
     
-    await userRef.set(newUserProfile);
-    await logActivity("INFO", `New user profile created: ${data.email}`, { uid: data.uid, role });
+    return {
+        ...userProfileData,
+        createdAt: userProfileData.createdAt.toDate().toISOString(),
+        lastSeen: userProfileData.lastSeen.toDate().toISOString(),
+    };
 }
 
 
