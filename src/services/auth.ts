@@ -26,8 +26,6 @@ export async function signUpWithEmailAndPassword(email: string, password: string
         uid: user.uid,
         email: user.email!,
         role: isFirstUser ? 'admin' : 'basic', // Assign 'admin' role if first user
-        createdAt: new Date(),
-        lastSeen: new Date(),
     });
 
     return user;

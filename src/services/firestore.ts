@@ -129,7 +129,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
-        timestamp: new Date(),
+        timestamp: Timestamp.fromDate(new Date()),
     });
     return docRef.id;
 }
@@ -144,8 +144,14 @@ export interface UserProfile {
     lastSeen: string; // Changed to string for serialization
 }
 
-export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Date, lastSeen: Date }): Promise<void> {
-    await setDoc(doc(db, "users", user.uid), user);
+export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'role'> & { role: 'admin' | 'basic' }): Promise<void> {
+    const now = Timestamp.fromDate(new Date());
+    const userProfile = {
+      ...user,
+      createdAt: now,
+      lastSeen: now,
+    };
+    await setDoc(doc(db, "users", user.uid), userProfile);
 }
 
 export async function getUsers(): Promise<UserProfile[]> {
@@ -155,12 +161,16 @@ export async function getUsers(): Promise<UserProfile[]> {
     const users: UserProfile[] = [];
     userSnapshot.forEach(doc => {
         const data = doc.data();
+        // Ensure timestamps are correctly converted to ISO strings
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString();
+        const lastSeen = data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : new Date().toISOString();
+
         users.push({
             uid: data.uid,
             email: data.email,
             role: data.role,
-            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-            lastSeen: (data.lastSeen as Timestamp).toDate().toISOString(),
+            createdAt: createdAt,
+            lastSeen: lastSeen,
         } as UserProfile);
     });
     return users;
