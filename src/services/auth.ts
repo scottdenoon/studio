@@ -1,24 +1,31 @@
 
+
 "use server";
 
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword,
     signOut,
     type User
 } from 'firebase/auth';
-import { addUser } from './firestore';
+import { addUser, getUsers } from './firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
 export async function signUpWithEmailAndPassword(email: string, password: string): Promise<User> {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
+    // Check if this is the first user
+    const usersCollection = collection(db, 'users');
+    const userSnapshot = await getDocs(usersCollection);
+    const isFirstUser = userSnapshot.empty;
+    
     // Create a corresponding user profile in Firestore
     await addUser({
         uid: user.uid,
         email: user.email!,
-        role: 'basic', // Default role for new users
+        role: isFirstUser ? 'admin' : 'basic', // Assign 'admin' role if first user
         createdAt: new Date(),
         lastSeen: new Date(),
     });
