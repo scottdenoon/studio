@@ -1,26 +1,32 @@
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Users can only read/write their own profile
+    // Users can read their own profile. Only server-side logic (with admin rights) can create/update user roles.
     match /users/{userId} {
-      allow read, update: if request.auth.uid == userId;
-      allow create: if request.auth.uid != null;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Disallow client-side writes
     }
 
-    // Users can only read/write their own watchlist items
-    match /watchlist/{docId} {
-        allow read, delete: if resource.data.userId == request.auth.uid;
-        allow create: if request.auth.uid != null && request.resource.data.userId == request.auth.uid;
+    // Any authenticated user can read the news feed.
+    // Only admins can create/update/delete news items.
+    match /news_feed/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users can only read/write their own watchlist items.
+    match /watchlist/{itemId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
-    // Allow any authenticated user to manage news and prompts
-    match /news_feed/{docId} {
-        allow read, write: if request.auth != null;
-    }
-
-    match /prompts/{docId} {
-        allow read, write: if request.auth != null;
+    // Any authenticated user can read prompts.
+    // Only admins can update prompts.
+    match /prompts/{promptId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }
