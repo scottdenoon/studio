@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Scanner, NewsItem } from '@/services/firestore';
 import { Skeleton } from '../ui/skeleton';
 import { BarChart, Info } from 'lucide-react';
-import { getStockData, StockData } from '@/ai/tools/get-stock-data';
+import { fetchStockData, StockData } from '@/services/market-data';
 
 interface ScannerCardProps {
   scanner: Scanner;
@@ -61,7 +61,7 @@ export default function ScannerCard({ scanner, allNews }: ScannerCardProps) {
         }
 
         // Fetch real-time stock data for all potential matches
-        const stockDataPromises = initialMatches.map(item => getStockData({ ticker: item.ticker }));
+        const stockDataPromises = initialMatches.map(item => fetchStockData({ ticker: item.ticker }));
         const stockDataResults = await Promise.allSettled(stockDataPromises);
         
         const finalResults: MatchedStock[] = [];

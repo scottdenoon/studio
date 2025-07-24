@@ -3,7 +3,7 @@
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
-import { getStockData, StockData } from "@/ai/tools/get-stock-data";
+import { fetchStockData, StockData } from "./market-data";
 import { logActivity } from "./logging";
 
 // --- Prompt Management ---
@@ -93,7 +93,7 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 }
 
 export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<WatchlistItem> {
-    const stockData = await getStockData({ ticker: item.ticker });
+    const stockData = await fetchStockData({ ticker: item.ticker });
     
     if (stockData.price === 0 && stockData.volume === 0) {
         await logActivity("WARN", `User ${item.userId} failed to add invalid ticker "${item.ticker}" to watchlist.`);
