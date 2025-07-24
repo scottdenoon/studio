@@ -1,53 +1,76 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check for admin role
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function isAdmin() {
-      // Allow reading user's own document to check the role.
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Users can read their own profile. Admins can read all profiles.
+    // --- Collections ---
+
+    // Users: Users can only read/update their own profile. Only admins can create/delete.
     match /users/{userId} {
-      allow get: if request.auth.uid == userId;
-      allow list: if isAdmin();
-      // Nobody can write to user profiles directly for now to prevent role escalation.
-      // Role changes would need a secure backend process (e.g., a Cloud Function).
-      allow write: if false; 
-      allow create: if request.auth.uid == userId;
+      allow read, update: if isOwner(userId) || isAdmin();
+      allow create, delete: if isAdmin();
     }
-
-    // News feed is readable by any authenticated user.
-    // Only admins can create, update, or delete news items.
+    
+    // News Feed: Publicly readable, only admins can manage.
     match /news_feed/{newsId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-
-    // Users can only manage their own watchlist items.
-    match /watchlist/{itemId} {
-      allow read, write, delete: if request.auth.uid == resource.data.userId;
-      allow create: if request.auth.uid == request.resource.data.userId;
-    }
-
-    // Prompts are readable by any authenticated user.
-    // Only admins can create or update prompts.
-    match /prompts/{promptId} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow write: if isAdmin();
     }
     
-    // Users can only manage their own alerts.
+    // Watchlist: Users can only manage their own watchlist items.
+    match /watchlist/{itemId} {
+      allow read, write: if isOwner(resource.data.userId);
+    }
+    
+    // Alerts: Users can only manage their own alerts.
     match /alerts/{alertId} {
-       allow read, write, delete: if request.auth.uid == resource.data.userId;
-       allow create: if request.auth.uid == request.resource.data.userId;
+        allow read, write: if isOwner(resource.data.userId);
     }
 
-    // Allow admins to perform test writes
-    match /test_writes/{testId} {
+    // Scanners: Publicly readable, only admins can manage.
+    match /scanners/{scannerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Prompts: Readable by authenticated users, only admins can manage.
+    match /prompts/{promptId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Data Sources: Readable by authenticated users, only admins can manage.
+    match /data_sources/{sourceId} {
+        allow read: if isAuthenticated();
         allow write: if isAdmin();
+    }
+
+    // Feature Flags: Publicly readable, only admins can manage.
+    match /feature_flags/{flagId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+
+    // Logs & Test Writes: Only accessible by admins.
+    match /logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+    match /test_writes/{testId} {
+      allow read, write: if isAdmin();
     }
   }
 }
