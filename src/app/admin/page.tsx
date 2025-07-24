@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, ToggleRight, Newspaper, Bot, BarChart } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminPage() {
   return (
@@ -66,7 +67,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>Manage Prompts</Button>
+            <Button asChild>
+              <Link href="/admin/prompts">Manage Prompts</Link>
+            </Button>
           </CardContent>
         </Card>
         <Card>
