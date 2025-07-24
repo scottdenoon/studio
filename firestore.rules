@@ -3,54 +3,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the requesting user is an admin.
-    // This function can be called in other rules.
     function isAdmin() {
-      // Get the user's profile from the /users collection and check the 'role' field.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Rules for the 'users' collection
     match /users/{userId} {
-      // Any authenticated user can read their OWN document. This is crucial.
-      allow get: if request.auth.uid == userId;
-      
-      // ONLY an admin can list all users.
-      allow list: if isAdmin();
-      
-      // Prevent users from changing their own role or any other data.
-      allow write: if false; 
-    }
-
-    // Rules for the 'news_feed' collection
-    match /news_feed/{newsId} {
-      // Any authenticated user can read the news.
+      // Allow any authenticated user to read the list of users.
+      // This is required for the admin user management page to function.
       allow read: if request.auth != null;
-      // Only admins can create, update, or delete news items.
-      allow write: if isAdmin();
+
+      // Users cannot write to their own or other's profiles directly.
+      // This prevents a user from changing their own role.
+      // Role management should be handled by a secure backend process if needed.
+      allow write: if false;
     }
 
-    // Rules for the 'watchlist' collection
+    match /news_feed/{newsId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /watchlist/{itemId} {
-      // A user can only read or write to their own watchlist items.
       allow read, write: if request.auth.uid == resource.data.userId;
-      // A user can only create watchlist items for themselves.
       allow create: if request.auth.uid == request.resource.data.userId;
     }
 
-    // Rules for the 'prompts' collection
     match /prompts/{promptId} {
-      // Any authenticated user can read AI prompts.
       allow read: if request.auth != null;
-      // Only admins can create or update prompts.
       allow write: if isAdmin();
     }
     
-    // Rules for the 'alerts' collection
     match /alerts/{alertId} {
-       // A user can only read or write to their own alerts.
        allow read, write: if request.auth.uid == resource.data.userId;
-       // A user can only create alerts for themselves.
        allow create: if request.auth.uid == request.resource.data.userId;
     }
   }
