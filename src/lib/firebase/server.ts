@@ -1,16 +1,42 @@
 import admin from 'firebase-admin';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { config } from 'dotenv';
 
-// Check if the app is already initialized to prevent errors in development environments with hot-reloading.
-if (!admin.apps.length) {
+config();
+
+function initializeFirebaseAdmin() {
+  if (admin.apps.length > 0) {
+    return admin.app();
+  }
+
   try {
-    admin.initializeApp();
+    const serviceAccountKey = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (serviceAccountKey) {
+        // In a deployed environment, GOOGLE_APPLICATION_CREDENTIALS should be a path
+        // In some setups, it might be the JSON content itself. This handles both.
+        const credentials = JSON.parse(
+            Buffer.from(serviceAccountKey, 'base64').toString('ascii')
+        );
+
+        return admin.initializeApp({
+            credential: admin.credential.cert(credentials),
+        });
+    }
+
+    // Default initialization for managed environments like Firebase App Hosting
+    // where credentials should be discovered automatically.
+    return admin.initializeApp();
   } catch (error: any) {
-    // In a managed environment, this should not fail.
-    // Logging the error for debugging purposes.
     console.error('Firebase Admin initialization error:', error);
+    // If initialization fails, we might be in an unauthenticated server environment.
+    // Instead of throwing, we return a null object or handle it gracefully
+    // so the app doesn't crash on startup. However, subsequent DB calls will fail.
+    // For this app, we will let it throw during startup to fail fast.
+    throw new Error(`Firebase Admin SDK initialization failed: ${error.message}`);
   }
 }
+
+initializeFirebaseAdmin();
 
 const db = getFirestore();
 
