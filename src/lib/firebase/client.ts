@@ -14,7 +14,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Check that all required environment variables are set
+// Check that all required environment variables are set. This is a common source of errors.
 if (
     !firebaseConfig.apiKey ||
     !firebaseConfig.authDomain ||
@@ -23,6 +23,8 @@ if (
     !firebaseConfig.messagingSenderId ||
     !firebaseConfig.appId
 ) {
+    // It's better to throw an error here to catch missing configuration during development.
+    // In a production environment, these variables should be set in your hosting provider's settings.
     throw new Error("Missing Firebase configuration. Make sure all NEXT_PUBLIC_FIREBASE_* environment variables are set.");
 }
 
