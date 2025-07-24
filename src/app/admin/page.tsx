@@ -53,7 +53,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>Manage News Feeds</Button>
+             <Button asChild>
+                <Link href="/admin/news">Manage News Feeds</Link>
+             </Button>
           </CardContent>
         </Card>
         <Card>

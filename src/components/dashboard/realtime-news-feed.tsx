@@ -11,25 +11,18 @@ import {
 } from "@/components/ui/card";
 
 import { Badge } from "@/components/ui/badge";
-import { AnalyzeNewsSentimentInput, analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
+import { analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import { getNewsFeed, NewsItem } from "@/services/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "../ui/skeleton";
 
 
-interface NewsItemData extends AnalyzeNewsSentimentInput {
-    momentum: {
-        volume: string;
-        relativeVolume: number;
-        float: string;
-        shortInterest: string;
-        priceAction: string;
-    };
-}
-
-interface NewsItemWithAnalysis extends NewsItemData {
+interface NewsItemWithAnalysis extends NewsItem {
   analysis?: AnalyzeNewsSentimentOutput;
   error?: string;
   loading: boolean;
@@ -37,86 +30,6 @@ interface NewsItemWithAnalysis extends NewsItemData {
 
 interface RealtimeNewsFeedProps {
   onSelectNews: (analysis: AnalyzeNewsSentimentOutput) => void;
-}
-
-const mockNewsData: NewsItemData[] = [
-    {
-        ticker: "TSLA",
-        headline: "Tesla reports record Q4 deliveries, beating analyst expectations",
-        content: "Tesla announced it delivered 484,507 vehicles in the fourth quarter and 1.81 million vehicles for the full year 2023, marking a 38% increase from the previous year. The results sent TSLA shares up 3% in pre-market trading.",
-        momentum: {
-            volume: "45.1M",
-            relativeVolume: 2.5,
-            float: "950M",
-            shortInterest: "3.1%",
-            priceAction: "Pre-market gap up, consolidating near highs.",
-        }
-    },
-    {
-        ticker: "NVDA",
-        headline: "NVIDIA unveils new AI chips for gaming and data centers",
-        content: "NVIDIA today took the wraps off its latest generation of graphics processing units, the RTX 50 series, with major improvements in ray tracing and AI-powered DLSS technology. The company also revealed its new H200 data center GPU, aiming to continue its dominance in the AI hardware market.",
-        momentum: {
-            volume: "88.2M",
-            relativeVolume: 1.8,
-            float: "2.5B",
-            shortInterest: "1.5%",
-            priceAction: "Strong uptrend, breaking key resistance levels.",
-        }
-    },
-    {
-        ticker: "AAPL",
-        headline: "Apple Vision Pro launch date set for February 2nd",
-        content: "Apple has officially announced that its much-anticipated Vision Pro mixed-reality headset will be available in the U.S. starting February 2nd, with pre-orders beginning January 19th. The device is priced at $3,499.",
-        momentum: {
-            volume: "60.3M",
-            relativeVolume: 0.9,
-            float: "15.4B",
-            shortInterest: "0.7%",
-            priceAction: "Range-bound, testing support at the 50-day moving average.",
-        }
-    },
-    {
-        ticker: "MSFT",
-        headline: "Microsoft to acquire gaming giant Activision Blizzard for $68.7 billion",
-        content: "In a landmark deal for the gaming industry, Microsoft has agreed to purchase Activision Blizzard, the publisher of major franchises like Call of Duty and World of Warcraft. The all-cash transaction is expected to close in 2024.",
-        momentum: {
-            volume: "35.8M",
-            relativeVolume: 1.2,
-            float: "7.4B",
-            shortInterest: "0.5%",
-            priceAction: "Initial spike on news, now in a controlled pullback.",
-        }
-    },
-    {
-        ticker: "JPM",
-        headline: "JPMorgan Chase CEO Jamie Dimon warns of persistent inflation",
-        content: "Jamie Dimon, CEO of JPMorgan Chase, stated in an interview that he believes inflationary pressures could be more persistent than the market currently expects, citing strong consumer demand and geopolitical risks. He urged the Federal Reserve to remain vigilant.",
-        momentum: {
-            volume: "15.2M",
-            relativeVolume: 1.1,
-            float: "3.0B",
-            shortInterest: "1.2%",
-            priceAction: "Gradual downtrend following comments, breaking below short-term support.",
-        }
-    },
-    {
-        ticker: "GOOGL",
-        headline: "Google announces major reorganization, forms new 'AI Labs' division",
-        content: "Alphabet, Google's parent company, announced a significant corporate restructuring to consolidate its various artificial intelligence research teams under a new unified division called AI Labs. The move is seen as an effort to accelerate innovation and compete more effectively with rivals.",
-        momentum: {
-            volume: "22.9M",
-            relativeVolume: 1.0,
-            float: "5.8B",
-            shortInterest: "0.8%",
-            priceAction: "Consolidating gains after a positive market reaction to restructuring news.",
-        }
-    },
-];
-
-const getTimestamp = () => {
-    const date = new Date();
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
@@ -140,32 +53,54 @@ const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impac
 export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItemWithAnalysis[]>([]);
+  const [loadingFeed, setLoadingFeed] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    const initialNewsItems: NewsItemWithAnalysis[] = mockNewsData.map(item => ({...item, loading: true}));
-    setNewsItems(initialNewsItems);
-
-    const analyzeAllNews = async () => {
-        const analyzedItems = await Promise.all(initialNewsItems.map(async (item) => {
-            try {
-                const analysis = await analyzeNewsSentiment({
-                    ticker: item.ticker,
-                    headline: item.headline,
-                    content: item.content
-                });
-                return {...item, analysis, loading: false};
-            } catch (error: any) {
-                return {...item, error: error.message || "Analysis failed", loading: false};
+    const fetchAndAnalyzeNews = async () => {
+        setLoadingFeed(true);
+        try {
+            const initialNewsItems = await getNewsFeed();
+            if (initialNewsItems.length === 0) {
+                 setNewsItems([]);
+                 setLoadingFeed(false);
+                 return;
             }
-        }));
-        setNewsItems(analyzedItems);
-        if (analyzedItems.length > 0 && analyzedItems[0].analysis) {
-            handleNewsClick(analyzedItems[0]);
+
+            const itemsWithLoadingState: NewsItemWithAnalysis[] = initialNewsItems.map(item => ({...item, loading: true}));
+            setNewsItems(itemsWithLoadingState);
+
+            const analyzedItems = await Promise.all(itemsWithLoadingState.map(async (item) => {
+                try {
+                    const analysis = await analyzeNewsSentiment({
+                        ticker: item.ticker,
+                        headline: item.headline,
+                        content: item.content
+                    });
+                    return {...item, analysis, loading: false};
+                } catch (error: any) {
+                    return {...item, error: error.message || "Analysis failed", loading: false};
+                }
+            }));
+
+            setNewsItems(analyzedItems);
+            if (analyzedItems.length > 0 && analyzedItems[0].analysis) {
+                handleNewsClick(analyzedItems[0]);
+            }
+        } catch (error) {
+            console.error("Error fetching news feed:", error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Could not load the news feed from the database.",
+            })
+        } finally {
+            setLoadingFeed(false);
         }
     };
 
-    analyzeAllNews();
-  }, []);
+    fetchAndAnalyzeNews();
+  }, [toast]);
 
   const handleNewsClick = (news: NewsItemWithAnalysis) => {
     setSelectedItem(news.headline);
@@ -173,6 +108,10 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
         onSelectNews(news.analysis);
     }
   };
+  
+  const getTimestamp = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
 
   return (
     <Card className="lg:col-span-2">
@@ -189,50 +128,62 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px]">
-            <div className="space-y-2">
-                {newsItems.map((news, index) => (
-                <Collapsible key={index} onOpenChange={() => handleNewsClick(news)} className={cn(
-                    "border rounded-lg transition-colors",
-                    selectedItem === news.headline 
-                        ? "bg-muted border-primary" 
-                        : "hover:bg-muted/50"
-                )}>
-                    <CollapsibleTrigger className="w-full p-3 text-left group">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
-                                <p className="font-semibold leading-snug flex-1">{news.headline}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-muted-foreground">{getTimestamp()}</span>
-                                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                            </div>
-                        </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="p-3 pt-0">
-                        <Separator className="mb-3" />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
-                            <MomentumIndicator icon={BarChart2} label="Volume" value={news.momentum.volume} />
-                            <MomentumIndicator icon={TrendingUp} label="Relative Volume" value={news.momentum.relativeVolume.toFixed(2)} />
-                            <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
-                            <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
-                        </div>
-                        <div className="flex items-center gap-3 p-2 rounded-md bg-background/50 border mb-4 text-sm">
-                        <Bot className="h-5 w-5 text-accent shrink-0"/>
-                            {news.loading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
-                            {news.error && <div className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4"/><span>Analysis Error</span></div>}
-                            {news.analysis && (
-                                <div className="flex items-center justify-between w-full">
-                                    <span className="font-medium text-foreground/90">Momentum Impact Rating:</span>
-                                    <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
+            {loadingFeed ? (
+                 <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                 </div>
+            ) : newsItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border border-dashed rounded-lg h-[400px]">
+                    <Newspaper className="h-10 w-10" />
+                    <p className="text-sm font-medium">No News Items</p>
+                    <p className="text-xs">There are no news articles in the feed. Add new articles from the <Link href="/admin/news" className="text-primary underline">Admin Console</Link>.</p>
+                </div>
+            ) : (
+                <div className="space-y-2">
+                    {newsItems.map((news, index) => (
+                    <Collapsible key={index} onOpenChange={() => handleNewsClick(news)} className={cn(
+                        "border rounded-lg transition-colors",
+                        selectedItem === news.headline 
+                            ? "bg-muted border-primary" 
+                            : "hover:bg-muted/50"
+                    )}>
+                        <CollapsibleTrigger className="w-full p-3 text-left group">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
+                                    <p className="font-semibold leading-snug flex-1">{news.headline}</p>
                                 </div>
-                            )}
-                        </div>
-                        <p className="text-xs italic text-muted-foreground">{news.content}</p>
-                    </CollapsibleContent>
-                </Collapsible>
-                ))}
-            </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</span>
+                                    <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                </div>
+                            </div>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="p-3 pt-0">
+                            <Separator className="mb-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
+                                <MomentumIndicator icon={BarChart2} label="Volume" value={news.momentum.volume} />
+                                <MomentumIndicator icon={TrendingUp} label="Relative Volume" value={news.momentum.relativeVolume.toFixed(2)} />
+                                <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
+                                <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
+                            </div>
+                            <div className="flex items-center gap-3 p-2 rounded-md bg-background/50 border mb-4 text-sm">
+                            <Bot className="h-5 w-5 text-accent shrink-0"/>
+                                {news.loading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
+                                {news.error && <div className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4"/><span>Analysis Error</span></div>}
+                                {news.analysis && (
+                                    <div className="flex items-center justify-between w-full">
+                                        <span className="font-medium text-foreground/90">Momentum Impact Rating:</span>
+                                        <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs italic text-muted-foreground">{news.content}</p>
+                        </CollapsibleContent>
+                    </Collapsible>
+                    ))}
+                </div>
+            )}
         </ScrollArea>
       </CardContent>
     </Card>
