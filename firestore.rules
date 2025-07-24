@@ -6,30 +6,34 @@ service cloud.firestore {
     // Users can read their own profile, but not write to it.
     match /users/{userId} {
       allow read: if request.auth.uid == userId;
-      allow write: if false; 
+      allow write: if false;
     }
 
     // Any authenticated user can read the news feed.
-    // Only admins can create/update/delete news.
+    // Only admins can create, update, or delete news items.
     match /news_feed/{newsId} {
       allow read: if request.auth != null;
-      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow update, delete: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Users can only read/write their own watchlist items.
-    match /watchlist/{itemId} {
+    // Users can only read and write their own watchlist items.
+    match /watchlist/{watchlistItemId} {
       allow read, write: if request.auth.uid == resource.data.userId;
     }
-    
-    // Users can only read/write their own alerts.
-    match /alerts/{alertId} {
-       allow read, write: if request.auth.uid == resource.data.userId;
-    }
 
-    // Only admins can update prompts. Any authenticated user can read them.
+    // Any authenticated user can read prompts.
+    // Only admins can update prompts.
     match /prompts/{promptId} {
       allow read: if request.auth != null;
-      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    // Users can only read and write their own alerts.
+    match /alerts/{alertId} {
+       allow read, write, delete: if request.auth.uid == resource.data.userId;
+       allow create: if request.auth.uid == request.resource.data.userId;
+    }
+
   }
 }

@@ -67,8 +67,9 @@ export default function NewsManagementPage() {
   const onSubmit = async (data: NewsItemFormValues) => {
     setLoading(true)
     try {
-      const newsItem: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'> = data;
-      const newsId = await addNewsItem(newsItem);
+      // The `addNewsItem` function now only needs the form data.
+      // It will handle creating the full NewsItem object with timestamp.
+      const newsId = await addNewsItem(data);
 
       // Now, trigger the AI analysis and save it
       try {
