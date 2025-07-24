@@ -1,8 +1,4 @@
 
-
-
-
-
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -122,16 +118,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
-        let timestamp;
-        // Handle both Firestore Timestamp and ISO string
-        if (data.timestamp && data.timestamp.toDate) {
-            timestamp = data.timestamp.toDate().toISOString();
-        } else if (typeof data.timestamp === 'string') {
-            timestamp = data.timestamp;
-        } else {
-            // Fallback for invalid or missing timestamp
-            timestamp = new Date().toISOString(); 
-        }
+        const timestamp = data.timestamp.toDate().toISOString();
 
         const plainObject: NewsItem = {
             id: docSnap.id,
@@ -186,18 +173,14 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     const userDoc = await userRef.get();
     const now = Timestamp.now();
 
-    // If the user document already exists, just update their last seen time.
     if (userDoc.exists) {
         await userRef.update({ 
             lastSeen: now,
-            // Also update photoURL if it has changed (e.g., Google sign-in update)
             photoURL: data.photoURL || userDoc.data()?.photoURL || null
         });
         return;
     }
 
-    // If the user document does not exist, create it.
-    // Check if this is one of the first three users to assign the 'admin' role.
     const usersCol = db.collection('users');
     const userSnapshot = await usersCol.limit(3).get();
     const isEarlyUser = userSnapshot.size < 3;
@@ -260,15 +243,16 @@ export async function addSampleUsers(): Promise<void> {
     const now = Timestamp.now();
     const usersBatch = db.batch();
 
-    const sampleUsers: Omit<UserProfile, 'createdAt' | 'lastSeen'>[] = [
-        { uid: 'sample-admin-uid', email: 'admin@example.com', role: 'admin', photoURL: `https://placehold.co/400x400.png` },
-        { uid: 'sample-basic-uid', email: 'user@example.com', role: 'basic', photoURL: `https://placehold.co/400x400.png` },
+    const sampleUsers: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'uid'>[] = [
+        { email: 'admin@example.com', role: 'admin', photoURL: `https://placehold.co/400x400.png` },
+        { email: 'user@example.com', role: 'basic', photoURL: `https://placehold.co/400x400.png` },
     ];
 
     for (const user of sampleUsers) {
-        const userRef = db.collection('users').doc(user.uid);
+        const userRef = db.collection('users').doc();
         usersBatch.set(userRef, {
             ...user,
+            uid: userRef.id,
             createdAt: now,
             lastSeen: now,
         });
