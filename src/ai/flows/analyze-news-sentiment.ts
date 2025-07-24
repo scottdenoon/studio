@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getPrompt } from '@/services/firestore';
 
 const AnalyzeNewsSentimentInputSchema = z.object({
   headline: z.string().describe('The headline of the news article.'),
@@ -45,14 +46,7 @@ const analyzeNewsSentimentPrompt = ai.definePrompt({
   name: 'analyzeNewsSentimentPrompt',
   input: {schema: AnalyzeNewsSentimentInputSchema},
   output: {schema: AnalyzeNewsSentimentOutputSchema},
-  prompt: `You are an AI-powered financial news analyst.
-
-  Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
-
-  Ticker: {{{ticker}}}
-  Headline: {{{headline}}}
-  Content: {{{content}}}`,
+  prompt: async () => await getPrompt('analyzeNewsSentimentPrompt'),
 });
 
 const analyzeNewsSentimentFlow = ai.defineFlow(

@@ -51,7 +51,12 @@ export async function getPrompt(id: string): Promise<string> {
     if (docSnap.exists) {
         return docSnap.data()!.content;
     } else {
-        throw new Error("No such document!");
+        // Fallback to default if not in DB for some reason
+        const defaultPrompts = await getPrompts();
+        if (id in defaultPrompts) {
+            return defaultPrompts[id];
+        }
+        throw new Error(`Prompt with id "${id}" not found!`);
     }
 }
 

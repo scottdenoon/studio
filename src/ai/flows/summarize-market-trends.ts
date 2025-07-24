@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { getPrompt } from '@/services/firestore';
 
 const SummarizeMarketTrendsInputSchema = z.object({
   newsFeed: z.string().describe('A summary of recent market news.'),
@@ -35,11 +36,7 @@ const summarizeMarketTrendsPrompt = ai.definePrompt({
   name: 'summarizeMarketTrendsPrompt',
   input: {schema: SummarizeMarketTrendsInputSchema},
   output: {schema: SummarizeMarketTrendsOutputSchema},
-  prompt: `You are an AI assistant that summarizes market conditions and trends.
-
-  Summarize the market conditions and trends based on the following news feed:
-
-  {{newsFeed}}`,
+  prompt: async () => await getPrompt('summarizeMarketTrendsPrompt'),
 });
 
 const summarizeMarketTrendsFlow = ai.defineFlow(
