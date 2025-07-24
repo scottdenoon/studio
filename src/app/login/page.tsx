@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { logInWithEmailAndPassword, signInWithGoogle } from '@/services/auth'
+import { signInWithEmailAndPassword, signInWithGoogle } from '@/services/auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -53,7 +53,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setLoading(true)
     try {
-      await logInWithEmailAndPassword(data.email, data.password)
+      await signInWithEmailAndPassword(data.email, data.password)
       router.push('/')
     } catch (error: any) {
       console.error('Login failed:', error)
