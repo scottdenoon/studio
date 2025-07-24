@@ -23,8 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 
 
-interface NewsItemWithAnalysis extends Omit<NewsItem, 'timestamp'> {
-  timestamp: Date;
+interface NewsItemWithAnalysis extends NewsItem {
   analysis?: AnalyzeNewsSentimentOutput;
   error?: string;
   loading: boolean;
@@ -66,7 +65,7 @@ export default function RealtimeNewsFeed() {
                  return;
             }
 
-            const itemsWithLoadingState: NewsItemWithAnalysis[] = initialNewsItems.map(item => ({...item, timestamp: new Date(item.timestamp), loading: true}));
+            const itemsWithLoadingState: NewsItemWithAnalysis[] = initialNewsItems.map(item => ({...item, loading: true}));
             setNewsItems(itemsWithLoadingState);
             
             if (itemsWithLoadingState.length > 0) {
@@ -102,8 +101,9 @@ export default function RealtimeNewsFeed() {
     fetchAndAnalyzeNews();
   }, [toast]);
   
-  const getTimestamp = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const getTimestamp = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
 
   return (
