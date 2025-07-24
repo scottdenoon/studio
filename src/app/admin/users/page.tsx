@@ -33,14 +33,9 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface DisplayUserProfile extends Omit<UserProfile, 'createdAt' | 'lastSeen'> {
-    createdAt: Date;
-    lastSeen: Date;
-}
-
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<DisplayUserProfile[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -49,13 +44,7 @@ export default function UserManagementPage() {
       setLoading(true);
       try {
         const fetchedUsers = await getUsers();
-        // Convert string dates back to Date objects for formatting
-        const usersWithDates = fetchedUsers.map(u => ({
-            ...u,
-            createdAt: new Date(u.createdAt),
-            lastSeen: new Date(u.lastSeen)
-        }));
-        setUsers(usersWithDates);
+        setUsers(fetchedUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({
@@ -70,8 +59,8 @@ export default function UserManagementPage() {
     fetchUsers();
   }, [toast]);
 
-  const formatLastSeen = (date: Date) => {
-    return `${formatDistanceToNow(date)} ago`;
+  const formatLastSeen = (dateString: string) => {
+    return `${formatDistanceToNow(new Date(dateString))} ago`;
   }
 
   return (
