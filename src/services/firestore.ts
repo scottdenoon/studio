@@ -1,4 +1,5 @@
 
+
 "use server"
 
 import { db } from "@/lib/firebase/server";
@@ -119,13 +120,22 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
+        let timestamp;
+        if (data.timestamp && data.timestamp instanceof Timestamp) {
+            timestamp = data.timestamp.toDate().toISOString();
+        } else if (typeof data.timestamp === 'string') {
+            timestamp = data.timestamp;
+        } else {
+            timestamp = new Date().toISOString();
+        }
+
         const plainObject: NewsItem = {
             id: docSnap.id,
             ticker: data.ticker,
             headline: data.headline,
             content: data.content,
             momentum: data.momentum,
-            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp,
+            timestamp: timestamp,
             analysis: data.analysis,
         };
         newsFeed.push(plainObject);
