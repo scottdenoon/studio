@@ -1,7 +1,8 @@
+
 "use server"
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where } from "firebase/firestore";
 
 // --- Prompt Management ---
 
@@ -62,6 +63,7 @@ export async function savePrompt(id: string, content: string): Promise<void> {
 
 export interface WatchlistItem {
     id: string;
+    userId: string;
     ticker: string;
     name: string;
     price: number;
@@ -70,9 +72,9 @@ export interface WatchlistItem {
     volume: string;
 }
 
-export async function getWatchlist(): Promise<WatchlistItem[]> {
+export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
     const watchlistCol = collection(db, 'watchlist');
-    const q = query(watchlistCol, orderBy("ticker"));
+    const q = query(watchlistCol, where("userId", "==", userId), orderBy("ticker"));
     const watchlistSnapshot = await getDocs(q);
     const watchlist: WatchlistItem[] = [];
     watchlistSnapshot.forEach(doc => {

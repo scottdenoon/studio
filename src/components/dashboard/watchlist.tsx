@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -46,6 +47,7 @@ import { getWatchlist, addWatchlistItem, removeWatchlistItem, WatchlistItem } fr
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
+import { useAuth } from "@/hooks/use-auth"
 
 const watchlistSchema = z.object({
     ticker: z.string().min(1, "Ticker is required").max(5, "Ticker is too long"),
@@ -59,6 +61,7 @@ const watchlistSchema = z.object({
 type WatchlistFormValues = z.infer<typeof watchlistSchema>
 
 export default function Watchlist() {
+    const { user } = useAuth();
     const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddDialogOpen, setAddDialogOpen] = useState(false);
@@ -78,10 +81,16 @@ export default function Watchlist() {
     });
 
     useEffect(() => {
+        if (!user) {
+            setWatchlist([]);
+            setLoading(false);
+            return;
+        };
+
         const fetchWatchlist = async () => {
             setLoading(true);
             try {
-                const items = await getWatchlist();
+                const items = await getWatchlist(user.uid);
                 setWatchlist(items);
             } catch (error) {
                 console.error("Error fetching watchlist:", error);
@@ -96,7 +105,7 @@ export default function Watchlist() {
         };
 
         fetchWatchlist();
-    }, [toast]);
+    }, [toast, user]);
 
     const handleRemove = async (id: string, ticker: string) => {
         try {
@@ -117,10 +126,12 @@ export default function Watchlist() {
     };
     
     const onSubmit = async (data: WatchlistFormValues) => {
+        if (!user) return;
         setSubmitting(true);
         try {
-            const id = await addWatchlistItem(data);
-            setWatchlist(prev => [...prev, { ...data, id}]);
+            const newWatchlistItem = { ...data, userId: user.uid };
+            const id = await addWatchlistItem(newWatchlistItem);
+            setWatchlist(prev => [...prev, { ...newWatchlistItem, id}]);
             toast({
                 title: "Stock Added",
                 description: `${data.ticker} has been added to your watchlist.`,
