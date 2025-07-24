@@ -1,17 +1,19 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Home,
   LineChart,
   Newspaper,
-  Package,
   Package2,
   PanelLeft,
   Search,
   Settings,
   Star,
   User,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 
 import {
@@ -36,9 +38,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/theme-toggle';
-import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+
 
 export default function Header() {
+    const { user, signOut } = useAuth();
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -120,23 +125,56 @@ export default function Header() {
             size="icon"
             className="overflow-hidden rounded-full"
           >
-            <Image
-              src="https://placehold.co/36x36.png"
-              width={36}
-              height={36}
-              alt="Avatar"
-              className="overflow-hidden rounded-full"
-              data-ai-hint="user avatar"
-            />
+             <Avatar>
+                {user?.photoURL ? (
+                    <AvatarImage src={user.photoURL} alt="User avatar" data-ai-hint="user avatar" />
+                ) : (
+                    <AvatarFallback>
+                        <User className="h-5 w-5" />
+                    </AvatarFallback>
+                )}
+            </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Logout</DropdownMenuItem>
+            {user ? (
+                <>
+                    <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                         <Link href="/settings" className="flex items-center w-full">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Link href="/support" className="flex items-center w-full">
+                            <User className="mr-2 h-4 w-4" />
+                            Support
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </DropdownMenuItem>
+                </>
+            ) : (
+                <>
+                    <DropdownMenuItem>
+                        <Link href="/login" className="flex items-center w-full">
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Login
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                        <Link href="/signup" className="flex items-center w-full">
+                            <User className="mr-2 h-4 w-4" />
+                            Sign Up
+                        </Link>
+                    </DropdownMenuItem>
+                </>
+            )}
         </DropdownMenuContent>
       </DropdownMenu>
     </header>
