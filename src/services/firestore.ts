@@ -147,13 +147,19 @@ export interface UserProfile {
     uid: string;
     email: string;
     role: 'admin' | 'basic' | 'premium';
-    createdAt: string; // Changed to string for serialization
-    lastSeen: string; // Changed to string for serialization
+    createdAt: string; 
+    lastSeen: string;
 }
 
-export async function addUser(user: { uid: string, email: string, role: 'admin' | 'basic' }): Promise<void> {
+export interface NewUserProfile {
+    uid: string;
+    email: string;
+    role: 'admin' | 'basic';
+}
+
+export async function addUser(user: NewUserProfile): Promise<void> {
     const now = new Date().toISOString();
-    const userProfile = {
+    const userProfile: Omit<UserProfile, 'id'> = {
       uid: user.uid,
       email: user.email,
       role: user.role,
@@ -170,7 +176,6 @@ export async function getUsers(): Promise<UserProfile[]> {
     const users: UserProfile[] = [];
     userSnapshot.forEach(doc => {
         const data = doc.data();
-        // Ensure timestamps are correctly converted to ISO strings
         const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString());
         const lastSeen = data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : (data.lastSeen || new Date().toISOString());
 

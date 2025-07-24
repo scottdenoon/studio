@@ -9,7 +9,7 @@ import {
     signOut,
     type User
 } from 'firebase/auth';
-import { addUser } from './firestore';
+import { addUser, NewUserProfile } from './firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
 export async function signUpWithEmailAndPassword(email: string, password: string): Promise<User> {
@@ -22,11 +22,12 @@ export async function signUpWithEmailAndPassword(email: string, password: string
     const isFirstUser = userSnapshot.empty;
     
     // Create a corresponding user profile in Firestore
-    await addUser({
+    const newUserProfile: NewUserProfile = {
         uid: user.uid,
         email: user.email!,
         role: isFirstUser ? 'admin' : 'basic', // Assign 'admin' role if first user
-    });
+    };
+    await addUser(newUserProfile);
 
     return user;
 }
