@@ -42,11 +42,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { getWatchlist, addWatchlistItem, removeWatchlistItem, WatchlistItem, addAlert } from "@/services/firestore"
+import { addWatchlistItem, removeWatchlistItem, WatchlistItem, addAlert } from "@/services/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { useAuth } from "@/hooks/use-auth"
+import { getWatchlist } from "@/app/actions"
 
 const watchlistSchema = z.object({
     ticker: z.string().min(1, "Ticker is required").max(5, "Ticker is too long").transform(value => value.toUpperCase()),
