@@ -74,7 +74,7 @@ export default function Header() {
             </Link>
              <Link
               href="/scanners"
-              className="flex items-center gap-4 px-2.5 text-foreground"
+              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
             >
               <BarChart className="h-5 w-5" />
               Scanners
@@ -94,8 +94,8 @@ export default function Header() {
               Watchlists
             </Link>
             <Link
-              href="#"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              href="/news"
+              className="flex items-center gap-4 px-2.5 text-foreground"
             >
               <Newspaper className="h-5 w-5" />
               News

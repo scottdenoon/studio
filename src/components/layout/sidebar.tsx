@@ -27,7 +27,7 @@ const navItems = [
     { href: "/scanners", icon: BarChart, label: "Scanners" },
     { href: "/journal", icon: BookText, label: "Journal" },
     { href: "#", icon: Star, label: "Watchlists" },
-    { href: "#", icon: Newspaper, label: "News" },
+    { href: "/news", icon: Newspaper, label: "News" },
     { href: "#", icon: LineChart, label: "Charts" },
 ];
 
