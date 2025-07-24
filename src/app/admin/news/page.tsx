@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, CheckCircle } from "lucide-react"
+import { Loader2, Edit, CheckCircle, Rss } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -47,7 +47,8 @@ import {
   getNewsSources,
   updateNewsSource,
   NewsSource,
-} from "@/services/firestore"
+  fetchNewsFromSources,
+} from "./actions"
 import { Separator } from "@/components/ui/separator"
 
 const newsSourceSchema = z.object({
@@ -61,6 +62,7 @@ type NewsSourceFormValues = z.infer<typeof newsSourceSchema>
 
 export default function NewsSourceManagementPage() {
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(false)
   const [newsSources, setNewsSources] = useState<NewsSource[]>([])
   const [loadingNewsSources, setLoadingNewsSources] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -93,6 +95,22 @@ export default function NewsSourceManagementPage() {
       })
     } finally {
       setLoadingNewsSources(false)
+    }
+  }
+  
+  const handleFetchNews = async () => {
+    setFetching(true);
+    try {
+        const result = await fetchNewsFromSources();
+        toast({
+            title: "News Ingestion Complete",
+            description: `Successfully fetched and processed ${result.importedCount} new articles.`
+        })
+    } catch (error) {
+        console.error("Error fetching news from sources:", error);
+        toast({ variant: "destructive", title: "Error", description: "Failed to fetch news from sources." });
+    } finally {
+        setFetching(false);
     }
   }
 
@@ -190,7 +208,7 @@ export default function NewsSourceManagementPage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="API">API</SelectItem>
-                        <SelectItem value="WebSocket">WebSocket</SelectItem>
+                        <SelectItem value="WebSocket" disabled>WebSocket</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -231,8 +249,13 @@ export default function NewsSourceManagementPage() {
             <CardHeader>
                 <CardTitle>Feed Status</CardTitle>
                 <CardDescription>Live status of your active news feeds.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-4">
+               <Button onClick={handleFetchNews} disabled={fetching} className="w-full">
+                {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
+                Fetch News From Sources
+              </Button>
+              <Separator />
               {loadingNewsSources ? <Skeleton className="h-24 w-full" /> : 
                 newsSources.filter(ds => ds.isActive).length > 0 ? (
                   newsSources.filter(ds => ds.isActive).map((source) => (
@@ -244,7 +267,6 @@ export default function NewsSourceManagementPage() {
                                 <span className="text-sm font-medium">Operational</span>
                             </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">Latency: 120ms</div>
                         <Separator />
                     </div>
                   ))
