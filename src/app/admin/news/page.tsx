@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
-import { addNewsItem, NewsItem } from "@/services/firestore"
+import { addNewsItem } from "@/services/firestore"
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment"
 import { saveNewsItemAnalysis } from "@/services/firestore"
 

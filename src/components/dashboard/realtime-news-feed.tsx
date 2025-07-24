@@ -12,21 +12,14 @@ import {
 } from "@/components/ui/card";
 
 import { Badge } from "@/components/ui/badge";
-import { analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { getNewsFeed, NewsItem, saveNewsItemAnalysis } from "@/services/firestore";
+import { getNewsFeed, NewsItem } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
-
-
-interface NewsItemWithLoading extends NewsItem {
-  loading: boolean;
-  error?: string;
-}
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
     <div className="flex items-center text-xs text-muted-foreground">
@@ -49,56 +42,19 @@ const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentim
 
 export default function RealtimeNewsFeed() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [newsItems, setNewsItems] = useState<NewsItemWithLoading[]>([]);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchAndAnalyzeNews = async () => {
+    const fetchNews = async () => {
         setLoadingFeed(true);
         try {
             const initialNewsItems = await getNewsFeed();
-            if (initialNewsItems.length === 0) {
-                 setNewsItems([]);
-                 setLoadingFeed(false);
-                 return;
+            setNewsItems(initialNewsItems);
+            if (initialNewsItems.length > 0) {
+              setSelectedItem(initialNewsItems[0].id!);
             }
-
-            const itemsWithLoadingState: NewsItemWithLoading[] = initialNewsItems.map(item => ({...item, loading: !item.analysis}));
-            setNewsItems(itemsWithLoadingState);
-            
-            if (itemsWithLoadingState.length > 0) {
-              setSelectedItem(itemsWithLoadingState[0].id!);
-            }
-
-            // Analyze items that don't have analysis yet
-            const itemsToAnalyze = itemsWithLoadingState.filter(item => !item.analysis);
-
-            const analyzedItemsPromises = itemsToAnalyze.map(async (item) => {
-                try {
-                    const analysis = await analyzeNewsSentiment({
-                        ticker: item.ticker,
-                        headline: item.headline,
-                        content: item.content
-                    });
-                    await saveNewsItemAnalysis(item.id!, analysis);
-                    return {...item, analysis, loading: false};
-                } catch (error: any) {
-                    return {...item, error: error.message || "Analysis failed", loading: false};
-                }
-            });
-
-            const settledAnalyzedItems = await Promise.all(analyzedItemsPromises);
-
-            // Update the state with the new analysis results
-            setNewsItems(currentItems => {
-                const updatedItemsMap = new Map(currentItems.map(item => [item.id, item]));
-                settledAnalyzedItems.forEach(item => {
-                    updatedItemsMap.set(item.id, item);
-                });
-                return Array.from(updatedItemsMap.values());
-            });
-
         } catch (error) {
             console.error("Error fetching news feed:", error);
             toast({
@@ -111,7 +67,7 @@ export default function RealtimeNewsFeed() {
         }
     };
 
-    fetchAndAnalyzeNews();
+    fetchNews();
   }, [toast]);
   
   const getTimestamp = (dateString: string) => {
@@ -134,7 +90,7 @@ export default function RealtimeNewsFeed() {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px]">
-            {loadingFeed && newsItems.length === 0 ? (
+            {loadingFeed ? (
                  <div className="space-y-2">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                  </div>
@@ -158,10 +114,9 @@ export default function RealtimeNewsFeed() {
                                 <div className="flex items-start gap-3 flex-1">
                                     <div className="flex flex-col items-center gap-1">
                                         <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
-                                        {news.analysis && (
+                                        {news.analysis ? (
                                             <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
-                                        )}
-                                        {news.loading && (
+                                        ) : (
                                             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                         )}
                                     </div>
@@ -192,8 +147,7 @@ export default function RealtimeNewsFeed() {
                                     </div>
                                     {news.analysis && <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} showText />}
                                 </div>
-                                {news.loading && <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
-                                {news.error && <div className="flex items-center gap-2 text-destructive text-xs"><AlertTriangle className="h-4 w-4"/><span>Analysis Error: {news.error}</span></div>}
+                                {!news.analysis && <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
                                 {news.analysis && (
                                     <p className="text-xs text-foreground/80 pl-7">{news.analysis.summary}</p>
                                 )}
