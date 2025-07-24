@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import {
   Card,
   CardContent,
@@ -21,16 +21,19 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LogEntry } from "@/services/logging"
+import { format, subMinutes } from "date-fns"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, Info, CheckCircle, History } from "lucide-react"
+import { AlertTriangle, Info, CheckCircle, History, LineChart, PieChart, BarChart } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
 import { db as clientDb } from '@/lib/firebase/client';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
+import { Bar, BarChart as RechartsBarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from "recharts"
 
 
 // This function sets up the real-time subscription to logs from Firestore.
-function subscribeToLogs(callback: (logs: LogEntry[]) => void, logLimit: number = 50) {
+function subscribeToLogs(callback: (logs: LogEntry[]) => void, logLimit: number = 200) {
   const logsCollection = collection(clientDb, 'logs');
   const q = query(logsCollection, orderBy("timestamp", "desc"), limit(logLimit));
 
@@ -56,6 +59,12 @@ function subscribeToLogs(callback: (logs: LogEntry[]) => void, logLimit: number 
   return unsubscribe;
 }
 
+const severityColors: { [key in LogEntry['severity']]: string } = {
+  INFO: 'hsl(var(--chart-2))',
+  WARN: 'hsl(var(--chart-4))',
+  ERROR: 'hsl(var(--chart-5))',
+};
+
 export default function SystemLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,6 +82,51 @@ export default function SystemLogsPage() {
     // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, [toast]);
+
+  const chartData = useMemo(() => {
+    const severityCounts = { INFO: 0, WARN: 0, ERROR: 0 };
+    const actionCounts: { [key: string]: number } = {};
+    const ingestionVolumes: { time: string, volume: number }[] = [];
+
+    logs.forEach(log => {
+        // Severity
+        if (log.severity in severityCounts) {
+            severityCounts[log.severity]++;
+        }
+        // Action
+        actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+
+        // Ingestion Volume
+        if (log.action === "Fetched from source" && log.details?.dataVolume) {
+            const volume = parseInt(log.details.dataVolume.split(' ')[0], 10);
+            if (!isNaN(volume)) {
+                ingestionVolumes.push({ time: log.timestamp, volume });
+            }
+        }
+    });
+
+    const severityChartData = Object.entries(severityCounts).map(([name, value]) => ({ name, value, fill: severityColors[name as LogEntry['severity']] }));
+
+    const topActions = Object.entries(actionCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value }));
+    
+    // Group ingestion volume by minute
+    const now = new Date();
+    const timeWindow = 30; // 30 minutes
+    const volumeByMinute: { [key: string]: number } = {};
+
+    ingestionVolumes
+        .filter(d => new Date(d.time) > subMinutes(now, timeWindow))
+        .forEach(d => {
+            const minute = format(new Date(d.time), 'HH:mm');
+            volumeByMinute[minute] = (volumeByMinute[minute] || 0) + d.volume;
+        });
+
+    const ingestionChartData = Object.entries(volumeByMinute).map(([time, volume]) => ({ name: time, Volume: volume / 1024 })).sort((a,b) => a.name.localeCompare(b.name));
+
+
+    return { severityChartData, topActions, ingestionChartData };
+
+  }, [logs]);
 
 
   const getSeverityBadge = (severity: "INFO" | "WARN" | "ERROR") => {
@@ -94,63 +148,119 @@ export default function SystemLogsPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            System Logs
-        </CardTitle>
-        <CardDescription>
-          A real-time record of system activities and events for diagnostics.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[65vh] pr-4">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
-            <TableRow>
-              <TableHead className="w-[150px]">Timestamp</TableHead>
-              <TableHead className="w-[120px]">Severity</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Details</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              [...Array(10)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+    <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><PieChart className="h-5 w-5"/>Log Severity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
+                        <RechartsPieChart>
+                            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                            <Pie data={chartData.severityChartData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={5}>
+                                {chartData.severityChartData.map((entry) => (
+                                    <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+                                ))}
+                            </Pie>
+                            <ChartLegend content={<ChartLegendContent nameKey="name" />} />
+                        </RechartsPieChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><BarChart className="h-5 w-5"/>Top Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={{ value: { label: "Count" }}} className="h-[200px] w-full">
+                        <RechartsBarChart data={chartData.topActions} layout="vertical" margin={{ left: 20, right: 20 }}>
+                             <XAxis type="number" hide />
+                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} width={150} />
+                             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                             <Bar dataKey="value" layout="vertical" radius={5} fill="hsl(var(--primary))" />
+                        </RechartsBarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><LineChart className="h-5 w-5"/>Ingestion Volume (KB)</CardTitle>
+                    <CardDescription>Data ingestion volume over the last 30 minutes.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{ Volume: { label: "KB", color: "hsl(var(--chart-1))" } }} className="h-[160px] w-full">
+                        <RechartsLineChart data={chartData.ingestionChartData} margin={{ left: 12, right: 12 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
+                             <YAxis tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
+                             <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" />} />
+                             <Line dataKey="Volume" type="monotone" stroke="var(--color-Volume)" strokeWidth={2} dot={false} />
+                        </RechartsLineChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+        <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                System Logs
+            </CardTitle>
+            <CardDescription>
+            A real-time record of system activities and events for diagnostics.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <ScrollArea className="h-[60vh] pr-4">
+            <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                <TableHead className="w-[150px]">Timestamp</TableHead>
+                <TableHead className="w-[120px]">Severity</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Details</TableHead>
                 </TableRow>
-              ))
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No log entries found. System activity will appear here in real-time.
-                </TableCell>
-              </TableRow>
-            ) : (
-              logs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatTimestamp(log.timestamp)}</TableCell>
-                  <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                  <TableCell className="font-medium text-sm">{log.action}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs font-mono">
-                    {log.details && Object.keys(log.details).length > 0 ? (
-                        <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-2 rounded-md">
-                            {JSON.stringify(log.details, null, 2)}
-                        </pre>
-                    ) : 'N/A'}
-                  </TableCell>
+            </TableHeader>
+            <TableBody>
+                {loading ? (
+                [...Array(10)].map((_, i) => (
+                    <TableRow key={i}>
+                    <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                    </TableRow>
+                ))
+                ) : logs.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                    No log entries found. System activity will appear here in real-time.
+                    </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+                ) : (
+                logs.map((log) => (
+                    <TableRow key={log.id}>
+                    <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatTimestamp(log.timestamp)}</TableCell>
+                    <TableCell>{getSeverityBadge(log.severity)}</TableCell>
+                    <TableCell className="font-medium text-sm">{log.action}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs font-mono">
+                        {log.details && Object.keys(log.details).length > 0 ? (
+                            <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-2 rounded-md">
+                                {JSON.stringify(log.details, null, 2)}
+                            </pre>
+                        ) : 'N/A'}
+                    </TableCell>
+                    </TableRow>
+                ))
+                )}
+            </TableBody>
+            </Table>
+            </ScrollArea>
+        </CardContent>
+        </Card>
+    </div>
   )
 }
+
+    
