@@ -9,7 +9,7 @@ import {
     signOut,
     type User
 } from 'firebase/auth';
-import { addUser, getUsers } from './firestore';
+import { addUser } from './firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
 export async function signUpWithEmailAndPassword(email: string, password: string): Promise<User> {

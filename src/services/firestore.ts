@@ -140,11 +140,11 @@ export interface UserProfile {
     uid: string;
     email: string;
     role: 'admin' | 'basic' | 'premium';
-    createdAt: Date;
-    lastSeen: Date;
+    createdAt: string; // Changed to string for serialization
+    lastSeen: string; // Changed to string for serialization
 }
 
-export async function addUser(user: UserProfile): Promise<void> {
+export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Date, lastSeen: Date }): Promise<void> {
     await setDoc(doc(db, "users", user.uid), user);
 }
 
@@ -156,9 +156,11 @@ export async function getUsers(): Promise<UserProfile[]> {
     userSnapshot.forEach(doc => {
         const data = doc.data();
         users.push({
-            ...data,
-            createdAt: (data.createdAt as Timestamp).toDate(),
-            lastSeen: (data.lastSeen as Timestamp).toDate(),
+            uid: data.uid,
+            email: data.email,
+            role: data.role,
+            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+            lastSeen: (data.lastSeen as Timestamp).toDate().toISOString(),
         } as UserProfile);
     });
     return users;
