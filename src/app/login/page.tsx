@@ -65,6 +65,7 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       })
+      setRehydratedProfile(null);
     } finally {
       setLoading(false)
     }
@@ -83,6 +84,7 @@ export default function LoginPage() {
         title: 'Google Sign-In Failed',
         description: error.message || 'An unexpected error occurred.',
       });
+      setRehydratedProfile(null);
     } finally {
       setGoogleLoading(false);
     }

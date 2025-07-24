@@ -72,6 +72,7 @@ export default function SignupPage() {
         title: 'Signup Failed',
         description: error.message || 'An unexpected error occurred.',
       })
+      setRehydratedProfile(null);
     } finally {
       setLoading(false)
     }
@@ -90,6 +91,7 @@ export default function SignupPage() {
         title: 'Google Sign-In Failed',
         description: error.message || 'An unexpected error occurred.',
       });
+      setRehydratedProfile(null);
     } finally {
       setGoogleLoading(false);
     }

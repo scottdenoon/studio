@@ -12,7 +12,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   signOut: () => void;
-  setRehydratedProfile: (profile: UserProfile) => void;
+  setRehydratedProfile: (profile: UserProfile | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,27 +29,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const setRehydratedProfile = (profile: UserProfile) => {
+  const setRehydratedProfile = (profile: UserProfile | null) => {
     setUserProfile(profile);
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      if (user) {
-        // If profile is already set by a recent login/signup, don't refetch
-        if (!userProfile || userProfile.uid !== user.uid) {
-          const profile = await getUser(user.uid);
-          setUserProfile(profile);
-        }
-      } else {
+      if (!user) {
         setUserProfile(null);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [userProfile]);
+  }, []);
 
   const signOut = async () => {
     try {
