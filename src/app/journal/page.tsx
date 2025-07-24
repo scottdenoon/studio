@@ -13,12 +13,13 @@ import { format } from "date-fns";
 
 import {
   addJournalEntry,
-  getJournalEntries,
   updateJournalEntry,
   deleteJournalEntry,
   TradeJournalEntry,
   TradeJournalEntryCreate
 } from '@/services/firestore';
+import { getJournalEntries } from '@/app/actions';
+
 
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';

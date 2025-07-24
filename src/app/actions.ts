@@ -1,7 +1,9 @@
+
 'use server';
 
 import { db } from '@/lib/firebase/server';
 import { fetchStockData, StockData } from '@/services/market-data';
+import { getJournalEntries as getJournalEntriesFromDb, TradeJournalEntry } from '@/services/firestore';
 
 export type WatchlistItem = StockData & {
   id: string;
@@ -41,4 +43,8 @@ export async function getWatchlist(
   });
 
   return watchlist;
+}
+
+export async function getJournalEntries(userId: string): Promise<TradeJournalEntry[]> {
+    return await getJournalEntriesFromDb(userId);
 }
