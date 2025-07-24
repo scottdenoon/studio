@@ -1,3 +1,4 @@
+
 "use server";
 
 import { auth } from '@/lib/firebase';
@@ -7,10 +8,22 @@ import {
     signOut,
     type User
 } from 'firebase/auth';
+import { addUser } from './firestore';
 
 export async function signUpWithEmailAndPassword(email: string, password: string): Promise<User> {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
+    const user = userCredential.user;
+
+    // Create a corresponding user profile in Firestore
+    await addUser({
+        uid: user.uid,
+        email: user.email!,
+        role: 'basic', // Default role for new users
+        createdAt: new Date(),
+        lastSeen: new Date(),
+    });
+
+    return user;
 }
 
 export async function logInWithEmailAndPassword(email: string, password: string): Promise<User> {

@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -23,41 +26,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, PlusCircle } from "lucide-react";
+import { MoreHorizontal, PlusCircle, Loader2 } from "lucide-react";
+import { getUsers, UserProfile } from "@/services/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistanceToNow } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Placeholder data - we will replace this with real user data from Firebase Auth
-const users = [
-  {
-    id: "usr_1",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    role: "premium",
-    lastSeen: "2 hours ago",
-  },
-  {
-    id: "usr_2",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    role: "basic",
-    lastSeen: "1 day ago",
-  },
-    {
-    id: "usr_3",
-    name: "Sam Wilson",
-    email: "sam.wilson@example.com",
-    role: "basic",
-    lastSeen: "5 minutes ago",
-  },
-  {
-    id: "usr_4",
-    name: "Alice Johnson",
-    email: "alice.j@example.com",
-    role: "premium",
-    lastSeen: "1 week ago",
-  },
-];
 
 export default function UserManagementPage() {
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const fetchedUsers = await getUsers();
+        setUsers(fetchedUsers);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load users from the database.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [toast]);
+
+  const formatLastSeen = (date: Date) => {
+    return `${formatDistanceToNow(date)} ago`;
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -67,7 +71,7 @@ export default function UserManagementPage() {
                 View and manage all registered users.
             </CardDescription>
         </div>
-        <Button>
+        <Button disabled>
             <PlusCircle className="h-4 w-4 mr-2" />
             Add User
         </Button>
@@ -85,40 +89,56 @@ export default function UserManagementPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">{user.email}</div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={user.role === 'premium' ? 'default' : 'secondary'}>
-                    {user.role}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">{user.lastSeen}</TableCell>
-                <TableCell>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                        <Button
-                            aria-haspopup="true"
-                            size="icon"
-                            variant="ghost"
-                        >
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                        </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-500">Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+            {loading ? (
+                [...Array(3)].map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-8 ml-auto rounded-full" /></TableCell>
+                    </TableRow>
+                ))
+            ) : users.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        No users found. New users will appear here after they sign up.
+                    </TableCell>
+                </TableRow>
+            ) : (
+                users.map((user) => (
+                <TableRow key={user.uid}>
+                    <TableCell>
+                    <div className="font-medium">{user.email}</div>
+                    </TableCell>
+                    <TableCell>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                        {user.role}
+                    </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{formatLastSeen(user.lastSeen)}</TableCell>
+                    <TableCell>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button
+                                aria-haspopup="true"
+                                size="icon"
+                                variant="ghost"
+                            >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                            <DropdownMenuItem disabled>View Details</DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-500" disabled>Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
+                </TableRow>
+                ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

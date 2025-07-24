@@ -2,7 +2,7 @@
 "use server"
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp } from "firebase/firestore";
 
 // --- Prompt Management ---
 
@@ -132,4 +132,34 @@ export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Pro
         timestamp: new Date(),
     });
     return docRef.id;
+}
+
+// --- User Management ---
+
+export interface UserProfile {
+    uid: string;
+    email: string;
+    role: 'admin' | 'basic' | 'premium';
+    createdAt: Date;
+    lastSeen: Date;
+}
+
+export async function addUser(user: UserProfile): Promise<void> {
+    await setDoc(doc(db, "users", user.uid), user);
+}
+
+export async function getUsers(): Promise<UserProfile[]> {
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, orderBy("createdAt", "desc"));
+    const userSnapshot = await getDocs(q);
+    const users: UserProfile[] = [];
+    userSnapshot.forEach(doc => {
+        const data = doc.data();
+        users.push({
+            ...data,
+            createdAt: (data.createdAt as Timestamp).toDate(),
+            lastSeen: (data.lastSeen as Timestamp).toDate(),
+        } as UserProfile);
+    });
+    return users;
 }
