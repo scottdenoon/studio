@@ -1,3 +1,4 @@
+'use server';
 /**
  * @fileOverview A Genkit tool for fetching real-time stock data from Polygon.io.
  *
