@@ -161,13 +161,12 @@ export interface NewUserProfile {
 
 export async function addUser(user: NewUserProfile): Promise<void> {
     const now = new Date().toISOString();
-    const userProfile: Omit<UserProfile, 'uid'> = {
-      email: user.email,
-      role: user.role,
-      createdAt: now,
-      lastSeen: now,
-    };
-    await setDoc(doc(db, "users", user.uid), userProfile);
+    await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        role: user.role,
+        createdAt: now,
+        lastSeen: now,
+    });
 }
 
 export async function getUsers(): Promise<UserProfile[]> {
