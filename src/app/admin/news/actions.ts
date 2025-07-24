@@ -65,11 +65,20 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
     for (const source of activeSources) {
         try {
             const response = await fetch(source.url);
+            const rawData = await response.text();
+            
+            await logActivity("INFO", `Fetched from source: ${source.name}`, { 
+                source: source.name,
+                status: response.status,
+                ok: response.ok,
+                dataVolume: `${rawData.length} bytes`,
+                dataSnippet: rawData.substring(0, 200) + '...',
+            });
+
             if (!response.ok) {
-                await logActivity("WARN", `Failed to fetch news from source: ${source.name}`, { status: response.status });
+                await logActivity("WARN", `Non-OK response from source: ${source.name}`, { status: response.status });
                 continue;
             }
-            const rawData = await response.text();
             
             // Use AI to parse the raw data
             const { articles } = await ingestNewsData({ rawData });
@@ -105,7 +114,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
             
             // Wait for all analysis tasks for the current source to complete
             await Promise.all(analysisPromises);
-            await logActivity("INFO", `Fetched and processed ${articles.length} articles from source: ${source.name}`);
+            await logActivity("INFO", `Processed ${articles.length} articles from source: ${source.name}`, { source: source.name, count: articles.length });
 
         } catch (error) {
             console.error(`Error processing source ${source.name}:`, error);

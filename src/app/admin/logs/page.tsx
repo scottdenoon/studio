@@ -20,10 +20,41 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { getLogs, LogEntry } from "@/services/logging"
+import { LogEntry } from "@/services/logging"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 import { AlertTriangle, Info, CheckCircle, History } from "lucide-react"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
+import { db as clientDb } from '@/lib/firebase/client';
+
+
+// This function sets up the real-time subscription to logs from Firestore.
+function subscribeToLogs(callback: (logs: LogEntry[]) => void, logLimit: number = 50) {
+  const logsCollection = collection(clientDb, 'logs');
+  const q = query(logsCollection, orderBy("timestamp", "desc"), limit(logLimit));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const logs: LogEntry[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      logs.push({
+        id: doc.id,
+        timestamp: data.timestamp.toDate().toISOString(),
+        severity: data.severity,
+        action: data.action,
+        details: data.details,
+      });
+    });
+    callback(logs);
+  }, (error) => {
+    console.error("Error listening to logs:", error);
+    // Optionally, inform the user with a toast notification
+    // toast({ variant: "destructive", title: "Real-time logging failed." });
+  });
+
+  return unsubscribe;
+}
 
 export default function SystemLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([])
@@ -31,33 +62,27 @@ export default function SystemLogsPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      setLoading(true)
-      try {
-        const fetchedLogs = await getLogs()
-        setLogs(fetchedLogs)
-      } catch (error) {
-        console.error("Error fetching logs:", error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not load system logs.",
-        })
-      } finally {
-        setLoading(false)
+    setLoading(true);
+    const unsubscribe = subscribeToLogs((fetchedLogs) => {
+      setLogs(fetchedLogs);
+      if (loading) {
+          setLoading(false);
       }
-    }
-    fetchLogs()
-  }, [toast])
+    });
+
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
+  }, [toast, loading]);
+
 
   const getSeverityBadge = (severity: "INFO" | "WARN" | "ERROR") => {
     switch (severity) {
       case "INFO":
-        return <Badge variant="secondary"><Info className="mr-1 h-3 w-3" />INFO</Badge>
+        return <Badge variant="secondary" className="items-center"><Info className="mr-1 h-3 w-3" />INFO</Badge>
       case "WARN":
-        return <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600"><AlertTriangle className="mr-1 h-3 w-3" />WARN</Badge>
+        return <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600 items-center"><AlertTriangle className="mr-1 h-3 w-3" />WARN</Badge>
       case "ERROR":
-        return <Badge variant="destructive"><AlertTriangle className="mr-1 h-3 w-3" />ERROR</Badge>
+        return <Badge variant="destructive" className="items-center"><AlertTriangle className="mr-1 h-3 w-3" />ERROR</Badge>
       default:
         return <Badge variant="outline">UNKNOWN</Badge>
     }
@@ -76,12 +101,13 @@ export default function SystemLogsPage() {
             System Logs
         </CardTitle>
         <CardDescription>
-          A chronological record of system activities and events for diagnostics.
+          A real-time record of system activities and events for diagnostics.
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <ScrollArea className="h-[65vh] pr-4">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow>
               <TableHead className="w-[150px]">Timestamp</TableHead>
               <TableHead className="w-[120px]">Severity</TableHead>
@@ -102,23 +128,28 @@ export default function SystemLogsPage() {
             ) : logs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center">
-                  No log entries found.
+                  No log entries found. System activity will appear here in real-time.
                 </TableCell>
               </TableRow>
             ) : (
               logs.map((log) => (
                 <TableRow key={log.id}>
-                  <TableCell className="text-muted-foreground text-xs">{formatTimestamp(log.timestamp)}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs whitespace-nowrap">{formatTimestamp(log.timestamp)}</TableCell>
                   <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                  <TableCell className="font-medium">{log.action}</TableCell>
+                  <TableCell className="font-medium text-sm">{log.action}</TableCell>
                   <TableCell className="text-muted-foreground text-xs font-mono">
-                    {log.details ? JSON.stringify(log.details) : 'N/A'}
+                    {log.details && Object.keys(log.details).length > 0 ? (
+                        <pre className="whitespace-pre-wrap break-all text-xs bg-muted/50 p-2 rounded-md">
+                            {JSON.stringify(log.details, null, 2)}
+                        </pre>
+                    ) : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
+        </ScrollArea>
       </CardContent>
     </Card>
   )

@@ -16,16 +16,16 @@ export async function logActivity(severity: LogEntry['severity'], action: string
         timestamp: Timestamp.now(),
         severity,
         action,
-        details: details || null,
+        details: details || {}, // Ensure details is always an object
     };
     const docRef = await db.collection("logs").add(logEntry);
     return docRef.id;
 }
 
 
-export async function getLogs(limit: number = 50): Promise<LogEntry[]> {
+export async function getLogs(count: number = 50): Promise<LogEntry[]> {
     const logsCol = db.collection('logs');
-    const q = logsCol.orderBy("timestamp", "desc").limit(limit);
+    const q = logsCol.orderBy("timestamp", "desc").limit(count);
     const logsSnapshot = await q.get();
     const logs: LogEntry[] = [];
     logsSnapshot.forEach(docSnap => {
