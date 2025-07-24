@@ -5,6 +5,7 @@ import { db, Timestamp } from "@/lib/firebase/server";
 import { logActivity } from "@/services/logging";
 import { addNewsItem, saveNewsItemAnalysis } from "@/services/firestore";
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
+import { ingestNewsData } from "@/ai/flows/ingest-news-data";
 
 // --- News Source Management ---
 export interface NewsSource {
@@ -59,8 +60,7 @@ export async function deleteNewsSource(id: string): Promise<void> {
 export async function fetchNewsFromSources(): Promise<{ importedCount: number }> {
     const sources = await getNewsSources();
     const activeSources = sources.filter(s => s.isActive && s.type === 'API');
-    let importedCount = 0;
-    const analysisPromises: Promise<void>[] = [];
+    let totalImportedCount = 0;
 
     for (const source of activeSources) {
         try {
@@ -69,32 +69,25 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                 await logActivity("WARN", `Failed to fetch news from source: ${source.name}`, { status: response.status });
                 continue;
             }
-            const articles = await response.json();
+            const rawData = await response.text();
             
-            if (!Array.isArray(articles)) {
-                 await logActivity("WARN", `News source did not return an array: ${source.name}`);
+            // Use AI to parse the raw data
+            const { articles } = await ingestNewsData({ rawData });
+
+            if (!articles || articles.length === 0) {
+                 await logActivity("WARN", `AI could not parse any articles from source: ${source.name}`);
                  continue;
             }
 
+            const analysisPromises: Promise<void>[] = [];
             for (const article of articles) {
-                // Basic validation
-                if (!article.ticker || !article.headline || !article.content) {
-                    continue;
-                }
-                
                 const newsItemId = await addNewsItem({
                     ticker: article.ticker,
                     headline: article.headline,
                     content: article.content,
-                    momentum: {
-                        volume: article.momentum?.volume || "0",
-                        relativeVolume: article.momentum?.relativeVolume || 0,
-                        float: article.momentum?.float || "N/A",
-                        shortInterest: article.momentum?.shortInterest || "N/A",
-                        priceAction: article.momentum?.priceAction || "N/A"
-                    }
+                    momentum: article.momentum,
                 });
-                importedCount++;
+                totalImportedCount++;
 
                 // Trigger AI analysis asynchronously
                 const analysisPromise = analyzeNewsSentiment({ 
@@ -109,20 +102,20 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                 });
                 analysisPromises.push(analysisPromise);
             }
-             await logActivity("INFO", `Fetched ${articles.length} articles from source: ${source.name}`);
+            
+            // Wait for all analysis tasks for the current source to complete
+            await Promise.all(analysisPromises);
+            await logActivity("INFO", `Fetched and processed ${articles.length} articles from source: ${source.name}`);
 
         } catch (error) {
-            console.error(`Error fetching from ${source.name}:`, error);
-            await logActivity("ERROR", `Error fetching from news source: ${source.name}`, { error: (error as Error).message });
+            console.error(`Error processing source ${source.name}:`, error);
+            await logActivity("ERROR", `Error processing news source: ${source.name}`, { error: (error as Error).message });
         }
     }
-    
-    // Wait for all analysis tasks to complete
-    await Promise.all(analysisPromises);
 
-    if (importedCount > 0) {
-        await logActivity("INFO", `Completed analysis for ${analysisPromises.length} news items.`);
+    if (totalImportedCount > 0) {
+        await logActivity("INFO", `Completed news ingestion cycle. Total imported: ${totalImportedCount}.`);
     }
 
-    return { importedCount };
+    return { importedCount: totalImportedCount };
 }

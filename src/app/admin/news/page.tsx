@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -97,20 +96,20 @@ export default function NewsSourceManagementPage() {
       setLoadingNewsSources(false)
     }
   }
-  
+
   const handleFetchNews = async () => {
     setFetching(true);
     try {
-        const result = await fetchNewsFromSources();
-        toast({
-            title: "News Ingestion Complete",
-            description: `Successfully fetched and processed ${result.importedCount} new articles.`
-        })
+      const result = await fetchNewsFromSources();
+      toast({
+        title: "News Ingestion Complete",
+        description: `Successfully fetched and processed ${result.importedCount} new articles.`
+      })
     } catch (error) {
-        console.error("Error fetching news from sources:", error);
-        toast({ variant: "destructive", title: "Error", description: "Failed to fetch news from sources." });
+      console.error("Error fetching news from sources:", error);
+      toast({ variant: "destructive", title: "Error", description: "Failed to fetch news from sources." });
     } finally {
-        setFetching(false);
+      setFetching(false);
     }
   }
 
@@ -204,7 +203,7 @@ export default function NewsSourceManagementPage() {
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a type" />
-                        </Trigger>
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="API">API</SelectItem>
@@ -221,13 +220,13 @@ export default function NewsSourceManagementPage() {
                     <FormMessage />
                   </FormItem>
                 )} />
-                 <FormField control={form.control} name="isActive" render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <FormField control={form.control} name="isActive" render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                      <FormLabel>Active</FormLabel>
                     </div>
                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                    </FormItem>
+                  </FormItem>
                 )} />
 
                 <div className="flex items-center gap-4">
@@ -246,35 +245,35 @@ export default function NewsSourceManagementPage() {
         </Card>
 
         <Card>
-            <CardHeader>
-                <CardTitle>Feed Status</CardTitle>
-                <CardDescription>Live status of your active news feeds.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-               <Button onClick={handleFetchNews} disabled={fetching} className="w-full">
-                {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
-                Fetch News From Sources
-              </Button>
-              <Separator />
-              {loadingNewsSources ? <Skeleton className="h-24 w-full" /> : 
-                newsSources.filter(ds => ds.isActive).length > 0 ? (
-                  newsSources.filter(ds => ds.isActive).map((source) => (
-                    <div key={source.id} className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold">{source.name}</span>
-                            <div className="flex items-center gap-2 text-green-500">
-                                <CheckCircle className="h-4 w-4" />
-                                <span className="text-sm font-medium">Operational</span>
-                            </div>
-                        </div>
-                        <Separator />
+          <CardHeader>
+            <CardTitle>Feed Status</CardTitle>
+            <CardDescription>Live status of your active news feeds.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={handleFetchNews} disabled={fetching} className="w-full">
+              {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
+              Fetch News From Sources
+            </Button>
+            <Separator />
+            {loadingNewsSources ? <Skeleton className="h-24 w-full" /> :
+              newsSources.filter(ds => ds.isActive).length > 0 ? (
+                newsSources.filter(ds => ds.isActive).map((source) => (
+                  <div key={source.id} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold">{source.name}</span>
+                      <div className="flex items-center gap-2 text-green-500">
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="text-sm font-medium">Operational</span>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                   <p className="text-sm text-center text-muted-foreground py-8">No active news sources.</p>
-                )
-              }
-            </CardContent>
+                    <Separator />
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-center text-muted-foreground py-8">No active news sources.</p>
+              )
+            }
+          </CardContent>
         </Card>
       </div>
 
@@ -316,14 +315,14 @@ export default function NewsSourceManagementPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                            <Switch
-                                checked={source.isActive}
-                                onCheckedChange={() => handleToggleActive(source)}
-                                aria-label="Toggle active status"
-                            />
-                            <Button size="icon" variant="ghost" onClick={() => handleEdit(source)}>
-                                <Edit className="h-4 w-4" />
-                            </Button>
+                          <Switch
+                            checked={source.isActive}
+                            onCheckedChange={() => handleToggleActive(source)}
+                            aria-label="Toggle active status"
+                          />
+                          <Button size="icon" variant="ghost" onClick={() => handleEdit(source)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
