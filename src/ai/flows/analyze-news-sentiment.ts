@@ -26,8 +26,10 @@ const AnalyzeNewsSentimentOutputSchema = z.object({
     ),
   impactScore: z
     .number()
+    .min(1)
+    .max(100)
     .describe(
-      'A numerical score indicating the potential impact on the stock price (e.g., -1 to 1).'
+      'A numerical score from 1 to 100 indicating the potential impact on the stock price, where 1 is the lowest impact and 100 is the highest.'
     ),
   summary: z.string().describe('A brief summary of the news and its potential impact.'),
 });
@@ -46,15 +48,11 @@ const analyzeNewsSentimentPrompt = ai.definePrompt({
   prompt: `You are an AI-powered financial news analyst.
 
   Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score (-1 to 1), and a brief summary of the news and its potential impact.
+  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
 
   Ticker: {{{ticker}}}
   Headline: {{{headline}}}
-  Content: {{{content}}}
-
-  Sentiment: 
-  Impact Score:
-  Summary:`,
+  Content: {{{content}}}`,
 });
 
 const analyzeNewsSentimentFlow = ai.defineFlow(

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnalyzeNewsSentimentInput, analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus } from "lucide-react";
+import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 
@@ -127,12 +127,12 @@ const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementTy
 
 const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
   if (sentiment.toLowerCase() === 'positive') {
-    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-3 w-3" /> Positive ({impactScore.toFixed(2)})</Badge>;
+    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-3 w-3" /> Positive ({impactScore})</Badge>;
   }
   if (sentiment.toLowerCase() === 'negative') {
-    return <Badge variant="destructive"><TrendingDown className="mr-1 h-3 w-3" /> Negative ({impactScore.toFixed(2)})</Badge>;
+    return <Badge variant="destructive"><TrendingDown className="mr-1 h-3 w-3" /> Negative ({impactScore})</Badge>;
   }
-  return <Badge variant="secondary"><Minus className="mr-1 h-3 w-3" /> Neutral ({impactScore.toFixed(2)})</Badge>;
+  return <Badge variant="secondary"><Minus className="mr-1 h-3 w-3" /> Neutral ({impactScore})</Badge>;
 };
 
 export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps) {

@@ -13,12 +13,12 @@ interface NewsAnalysisProps {
 
 const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
   if (sentiment.toLowerCase() === 'positive') {
-    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-4 w-4" /> Positive ({impactScore.toFixed(2)})</Badge>;
+    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-4 w-4" /> Positive ({impactScore})</Badge>;
   }
   if (sentiment.toLowerCase() === 'negative') {
-    return <Badge variant="destructive"><TrendingDown className="mr-1 h-4 w-4" /> Negative ({impactScore.toFixed(2)})</Badge>;
+    return <Badge variant="destructive"><TrendingDown className="mr-1 h-4 w-4" /> Negative ({impactScore})</Badge>;
   }
-  return <Badge variant="secondary"><Minus className="mr-1 h-4 w-4" /> Neutral ({impactScore.toFixed(2)})</Badge>;
+  return <Badge variant="secondary"><Minus className="mr-1 h-4 w-4" /> Neutral ({impactScore})</Badge>;
 };
 
 

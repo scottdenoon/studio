@@ -34,12 +34,12 @@ Focus on identifying stocks with high relative volume, significant price changes
 {{newsFeed}}`,
   analyzeNewsSentimentPrompt: `You are an AI-powered financial news analyst.
 
-Analyze the following news article to determine its sentiment and potential impact on the stock price.
-Provide a sentiment analysis (positive, negative, or neutral), an impact score (-1 to 1), and a brief summary of the news and its potential impact.
+  Analyze the following news article to determine its sentiment and potential impact on the stock price.
+  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
 
-Ticker: {{{ticker}}}
-Headline: {{{headline}}}
-Content: {{{content}}}`,
+  Ticker: {{{ticker}}}
+  Headline: {{{headline}}}
+  Content: {{{content}}}`,
 }
 
 export default function PromptManagementPage() {
