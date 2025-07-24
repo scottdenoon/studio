@@ -1,6 +1,7 @@
 
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -252,6 +253,29 @@ export async function getUsers(): Promise<UserProfile[]> {
     });
     return users;
 }
+
+
+export async function addSampleUsers(): Promise<void> {
+    const now = Timestamp.now();
+    const usersBatch = db.batch();
+
+    const sampleUsers: Omit<UserProfile, 'createdAt' | 'lastSeen'>[] = [
+        { uid: 'sample-admin-uid', email: 'admin@example.com', role: 'admin', photoURL: `https://placehold.co/400x400.png` },
+        { uid: 'sample-basic-uid', email: 'user@example.com', role: 'basic', photoURL: `https://placehold.co/400x400.png` },
+    ];
+
+    for (const user of sampleUsers) {
+        const userRef = db.collection('users').doc(user.uid);
+        usersBatch.set(userRef, {
+            ...user,
+            createdAt: now,
+            lastSeen: now,
+        });
+    }
+
+    await usersBatch.commit();
+}
+
 
 // --- Alert Management ---
 export interface AlertItem {

@@ -27,23 +27,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, PlusCircle, Loader2 } from "lucide-react";
-import { getUsers, UserProfile } from "@/services/firestore";
+import { MoreHorizontal, PlusCircle, UserPlus, Info } from "lucide-react";
+import { getUsers, UserProfile, addSampleUsers } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSampleUserNote, setShowSampleUserNote] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const fetchedUsers = await getUsers();
+        let fetchedUsers = await getUsers();
+        if (fetchedUsers.length === 0) {
+            console.log("No users found, creating sample users...");
+            await addSampleUsers();
+            fetchedUsers = await getUsers();
+            setShowSampleUserNote(true);
+        }
         setUsers(fetchedUsers);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -65,6 +73,16 @@ export default function UserManagementPage() {
   }
 
   return (
+    <>
+    {showSampleUserNote && (
+        <Alert className="mb-6">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Sample Users Created</AlertTitle>
+            <AlertDescription>
+                We've added some sample user profiles to your database. To log in as them, you'll need to create corresponding users in the <b>Firebase Authentication</b> console with the same email addresses.
+            </AlertDescription>
+        </Alert>
+    )}
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
@@ -74,7 +92,7 @@ export default function UserManagementPage() {
             </CardDescription>
         </div>
         <Button disabled>
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <UserPlus className="h-4 w-4 mr-2" />
             Add User
         </Button>
       </CardHeader>
@@ -145,5 +163,6 @@ export default function UserManagementPage() {
         </Table>
       </CardContent>
     </Card>
+    </>
   );
 }
