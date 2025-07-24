@@ -86,6 +86,10 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<WatchlistItem> {
     const stockData = await getStockData({ ticker: item.ticker });
     
+    if (stockData.price === 0 && stockData.volume === 0) {
+        throw new Error(`Could not find a valid stock for ticker "${item.ticker}". Please check the symbol and try again.`);
+    }
+
     const newWatchlistItem = {
         ...stockData,
         userId: item.userId,

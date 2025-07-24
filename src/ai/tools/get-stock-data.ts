@@ -44,17 +44,27 @@ export const getStockData = ai.defineTool(
             
             if (!detailsResponse.ok) {
                  const errorText = await detailsResponse.text();
-                 throw new Error(`Failed to fetch company details from Polygon: ${detailsResponse.status} ${errorText}`);
+                 console.warn(`Could not fetch company details for ${ticker}: ${errorText}`);
+                 // Return a default object but still try to get price data
             }
              if (!prevDayResponse.ok) {
                 const errorText = await prevDayResponse.text();
-                throw new Error(`Failed to fetch previous day data from Polygon: ${prevDayResponse.status} ${errorText}`);
+                console.error(`Could not fetch previous day data for ${ticker}: ${errorText}`);
+                 // If price fails, return a zeroed object
+                return {
+                    ticker: ticker,
+                    name: 'Unknown Company',
+                    price: 0,
+                    change: 0,
+                    changePercent: 0,
+                    volume: 0,
+                };
             }
 
             const detailsData = await detailsResponse.json();
             const prevDayData = await prevDayResponse.json();
             
-            const name = detailsData.results?.name || 'Unknown Company';
+            const name = detailsData?.results?.name || 'Unknown Company';
             
             if (!prevDayData.results || prevDayData.results.length === 0) {
                  return {
@@ -80,7 +90,15 @@ export const getStockData = ai.defineTool(
 
         } catch (error) {
             console.error('[getStockData Tool Error]', error);
-            throw new Error(`Failed to fetch data for ticker ${ticker}: ${(error as Error).message}`);
+            // Return zeroed data on unexpected errors
+            return {
+                ticker: ticker,
+                name: 'Error Fetching Data',
+                price: 0,
+                change: 0,
+                changePercent: 0,
+                volume: 0,
+            };
         }
     }
 );

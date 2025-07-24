@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -21,9 +21,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Scanner, NewsItem } from '@/services/firestore';
 import { Skeleton } from '../ui/skeleton';
-import { BarChart, Info, TrendingDown, TrendingUp, Minus } from 'lucide-react';
-import { getStockData } from '@/ai/tools/get-stock-data';
-import { StockData } from '@/ai/tools/get-stock-data';
+import { BarChart, Info } from 'lucide-react';
+import { getStockData, StockData } from '@/ai/tools/get-stock-data';
 
 interface ScannerCardProps {
   scanner: Scanner;
@@ -44,18 +43,28 @@ export default function ScannerCard({ scanner, allNews }: ScannerCardProps) {
         const seenTickers = new Set();
         const initialMatches: NewsItem[] = [];
 
+        // First, filter news items by unique ticker
         for (const newsItem of allNews) {
             if (seenTickers.has(newsItem.ticker)) {
                 continue;
             }
+            // Preliminary filter based on news-only criteria
+            if (criteria.newsRequired && !newsItem.analysis) {
+                continue;
+            }
+             if (criteria.minRelativeVolume && newsItem.momentum.relativeVolume < criteria.minRelativeVolume) {
+                continue;
+            }
+
             initialMatches.push(newsItem);
             seenTickers.add(newsItem.ticker);
         }
 
+        // Fetch real-time stock data for all potential matches
         const stockDataPromises = initialMatches.map(item => getStockData({ ticker: item.ticker }));
         const stockDataResults = await Promise.allSettled(stockDataPromises);
         
-        const results: MatchedStock[] = [];
+        const finalResults: MatchedStock[] = [];
         for (let i = 0; i < initialMatches.length; i++) {
             const newsItem = initialMatches[i];
             const stockDataResult = stockDataResults[i];
@@ -66,20 +75,24 @@ export default function ScannerCard({ scanner, allNews }: ScannerCardProps) {
             }
 
             const stockData = stockDataResult.value;
-            let match = true;
+            // Skip if the API returned an empty/error object
+            if (stockData.price === 0 && stockData.volume === 0) {
+                continue;
+            }
 
+            // Apply market data-based criteria
+            let match = true;
             if (criteria.minPrice && stockData.price < criteria.minPrice) match = false;
             if (criteria.maxPrice && stockData.price > criteria.maxPrice) match = false;
             if (criteria.minVolume && stockData.volume < criteria.minVolume) match = false;
-            if (criteria.minRelativeVolume && newsItem.momentum.relativeVolume < criteria.minRelativeVolume) match = false;
-            if (criteria.newsRequired && !newsItem.analysis) match = false;
+            // Note: Relative volume and news checks were done before fetching
             
             if (match) {
-                results.push({ ...newsItem, stockData });
+                finalResults.push({ ...newsItem, stockData });
             }
         }
         
-        setMatchedStocks(results);
+        setMatchedStocks(finalResults);
         setLoading(false);
     }, [scanner, allNews]);
 
