@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -46,8 +45,9 @@ export default function UserManagementPage() {
       setLoading(true);
       try {
         let fetchedUsers = await getUsers();
-        if (fetchedUsers.length === 0) {
-            console.log("No users found, creating sample users...");
+        // If there's only 1 user (the admin), seed the sample users.
+        if (fetchedUsers.length < 2) {
+            console.log("Not enough users found, creating sample users...");
             await addSampleUsers();
             fetchedUsers = await getUsers();
             setShowSampleUserNote(true);
