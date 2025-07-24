@@ -12,15 +12,12 @@ import {
 } from 'firebase/auth';
 import { addUserProfile } from './firestore';
 
-// Note: These functions now correctly run on the client side.
-// Server actions that call these have been removed. 
-// Logic is handled in the respective page components.
-
 export async function signUpWithEmailAndPasswordClient(email: string, password: string): Promise<User> {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    // The component is now responsible for calling addUserProfile
+    // After creating the user in Auth, create their profile in Firestore.
+    // This is a server action and is now called correctly.
     await addUserProfile({ email: user.email!, uid: user.uid });
 
     return user;
@@ -36,8 +33,8 @@ export async function signInWithGoogle(): Promise<User> {
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
 
-    // The logic to check if the user profile exists and create one if not
-    // is now handled as a server action in the components.
+    // After a Google sign-in, create or update their profile in Firestore.
+    // This is a server action and is now called correctly.
     await addUserProfile({ email: user.email!, uid: user.uid, photoURL: user.photoURL });
     
     return user;

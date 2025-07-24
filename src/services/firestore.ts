@@ -1,5 +1,6 @@
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -183,11 +184,18 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     const userDoc = await userRef.get();
     const now = Timestamp.now();
 
+    // If the user document already exists, just update their last seen time.
     if (userDoc.exists) {
-        await userRef.update({ lastSeen: now });
+        await userRef.update({ 
+            lastSeen: now,
+            // Also update photoURL if it has changed (e.g., Google sign-in update)
+            photoURL: data.photoURL || userDoc.data()?.photoURL || null
+        });
         return;
     }
 
+    // If the user document does not exist, create it.
+    // Check if this is the very first user to assign the 'admin' role.
     const usersCol = db.collection('users');
     const userSnapshot = await usersCol.limit(1).get();
     const isFirstUser = userSnapshot.empty;
