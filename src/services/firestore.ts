@@ -152,11 +152,11 @@ export interface UserProfile {
 }
 
 export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'role'> & { role: 'admin' | 'basic' }): Promise<void> {
-    const now = new Date();
+    const now = new Date().toISOString();
     const userProfile = {
       ...user,
-      createdAt: now.toISOString(),
-      lastSeen: now.toISOString(),
+      createdAt: now,
+      lastSeen: now,
     };
     await setDoc(doc(db, "users", user.uid), userProfile);
 }
