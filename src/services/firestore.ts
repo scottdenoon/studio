@@ -2,6 +2,7 @@
 
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -196,16 +197,16 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     }
 
     // If the user document does not exist, create it.
-    // Check if this is the very first user to assign the 'admin' role.
+    // Check if this is one of the first three users to assign the 'admin' role.
     const usersCol = db.collection('users');
-    const userSnapshot = await usersCol.limit(1).get();
-    const isFirstUser = userSnapshot.empty;
-    
+    const userSnapshot = await usersCol.limit(3).get();
+    const isEarlyUser = userSnapshot.size < 3;
+
     const newUserProfile = {
         email: data.email,
         uid: data.uid,
         photoURL: data.photoURL || null,
-        role: isFirstUser ? 'admin' : 'basic',
+        role: isEarlyUser ? 'admin' : 'basic',
         createdAt: now,
         lastSeen: now,
     };
