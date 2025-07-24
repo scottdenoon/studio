@@ -1,6 +1,4 @@
 
-'use server';
-
 import admin from 'firebase-admin';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
