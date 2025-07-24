@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,15 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AnalyzeNewsSentimentInput } from "@/ai/flows/analyze-news-sentiment";
+import { AnalyzeNewsSentimentInput, analyzeNewsSentiment, AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText } from "lucide-react";
+import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 
-interface NewsItem extends AnalyzeNewsSentimentInput {
+interface NewsItemData extends AnalyzeNewsSentimentInput {
     momentum: {
         volume: string;
         relativeVolume: number;
@@ -28,11 +27,17 @@ interface NewsItem extends AnalyzeNewsSentimentInput {
     };
 }
 
-interface RealtimeNewsFeedProps {
-  onSelectNews: (news: AnalyzeNewsSentimentInput) => void;
+interface NewsItemWithAnalysis extends NewsItemData {
+  analysis?: AnalyzeNewsSentimentOutput;
+  error?: string;
+  loading: boolean;
 }
 
-const mockNewsData: NewsItem[] = [
+interface RealtimeNewsFeedProps {
+  onSelectNews: (analysis: AnalyzeNewsSentimentOutput) => void;
+}
+
+const mockNewsData: NewsItemData[] = [
     {
         ticker: "TSLA",
         headline: "Tesla reports record Q4 deliveries, beating analyst expectations",
@@ -107,7 +112,6 @@ const mockNewsData: NewsItem[] = [
     },
 ];
 
-
 const getTimestamp = () => {
     const date = new Date();
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -121,12 +125,48 @@ const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementTy
     </div>
 );
 
+const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
+  if (sentiment.toLowerCase() === 'positive') {
+    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-3 w-3" /> Positive ({impactScore.toFixed(2)})</Badge>;
+  }
+  if (sentiment.toLowerCase() === 'negative') {
+    return <Badge variant="destructive"><TrendingDown className="mr-1 h-3 w-3" /> Negative ({impactScore.toFixed(2)})</Badge>;
+  }
+  return <Badge variant="secondary"><Minus className="mr-1 h-3 w-3" /> Neutral ({impactScore.toFixed(2)})</Badge>;
+};
+
 export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps) {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [newsItems, setNewsItems] = useState<NewsItemWithAnalysis[]>([]);
 
-  const handleNewsClick = (news: AnalyzeNewsSentimentInput) => {
+  useEffect(() => {
+    const initialNewsItems: NewsItemWithAnalysis[] = mockNewsData.map(item => ({...item, loading: true}));
+    setNewsItems(initialNewsItems);
+
+    const analyzeAllNews = async () => {
+        const analyzedItems = await Promise.all(initialNewsItems.map(async (item) => {
+            try {
+                const analysis = await analyzeNewsSentiment({
+                    ticker: item.ticker,
+                    headline: item.headline,
+                    content: item.content
+                });
+                return {...item, analysis, loading: false};
+            } catch (error: any) {
+                return {...item, error: error.message || "Analysis failed", loading: false};
+            }
+        }));
+        setNewsItems(analyzedItems);
+    };
+
+    analyzeAllNews();
+  }, []);
+
+  const handleNewsClick = (news: NewsItemWithAnalysis) => {
     setSelectedItem(news.headline);
-    onSelectNews(news);
+    if(news.analysis) {
+        onSelectNews(news.analysis);
+    }
   };
 
   return (
@@ -137,14 +177,14 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
             Real-time News Feed
         </CardTitle>
         <CardDescription>
-          Breaking market news. Click on a story to analyze it and view momentum data.
+          Breaking market news with real-time AI momentum analysis.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px]">
           <div className="space-y-2">
-            {mockNewsData.map((news, index) => (
-              <Collapsible key={index} className={cn(
+            {newsItems.map((news, index) => (
+              <Collapsible key={index} onOpenChange={() => handleNewsClick(news)} className={cn(
                   "border rounded-lg transition-colors",
                   selectedItem === news.headline 
                       ? "bg-muted border-primary" 
@@ -170,15 +210,18 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
                         <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
                         <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
                     </div>
-                     <p className="text-xs italic text-muted-foreground mb-4 px-2 py-1.5 bg-background rounded-md border">{news.content}</p>
-                    <Button
-                        onClick={() => handleNewsClick(news)}
-                        size="sm"
-                        variant="ghost"
-                        className="w-full"
-                    >
-                        Analyze with AI
-                    </Button>
+                    <div className="flex items-center gap-3 p-2 rounded-md bg-background/50 border mb-4 text-sm">
+                       <Bot className="h-5 w-5 text-accent shrink-0"/>
+                        {news.loading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
+                        {news.error && <div className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4"/><span>Analysis Error</span></div>}
+                        {news.analysis && (
+                            <div className="flex items-center justify-between w-full">
+                                <span className="font-medium text-foreground/90">Momentum Impact Rating:</span>
+                                <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
+                            </div>
+                        )}
+                    </div>
+                     <p className="text-xs italic text-muted-foreground">{news.content}</p>
                 </CollapsibleContent>
               </Collapsible>
             ))}

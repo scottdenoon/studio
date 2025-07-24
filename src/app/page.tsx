@@ -6,10 +6,10 @@ import MarketSummary from '@/components/dashboard/market-summary';
 import NewsAnalysis from '@/components/dashboard/news-analysis';
 import RealtimeNewsFeed from '@/components/dashboard/realtime-news-feed';
 import { useState } from 'react';
-import { AnalyzeNewsSentimentInput } from '@/ai/flows/analyze-news-sentiment';
+import { AnalyzeNewsSentimentOutput } from '@/ai/flows/analyze-news-sentiment';
 
 export default function DashboardPage() {
-  const [selectedNews, setSelectedNews] = useState<AnalyzeNewsSentimentInput | null>(null);
+  const [selectedNews, setSelectedNews] = useState<AnalyzeNewsSentimentOutput | null>(null);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">

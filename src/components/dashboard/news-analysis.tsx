@@ -1,30 +1,14 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { analyzeNewsSentiment, AnalyzeNewsSentimentOutput, AnalyzeNewsSentimentInput } from '@/ai/flows/analyze-news-sentiment';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Newspaper, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { AnalyzeNewsSentimentOutput } from '@/ai/flows/analyze-news-sentiment';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, TrendingUp, TrendingDown, Minus, Bot } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
-const newsAnalysisSchema = z.object({
-  ticker: z.string().min(1, 'Ticker is required').max(10, 'Ticker is too long'),
-  headline: z.string().min(10, 'Headline is too short').max(200, 'Headline is too long'),
-  content: z.string().min(20, 'Content is too short').max(5000, 'Content is too long'),
-});
-
-type NewsAnalysisFormValues = z.infer<typeof newsAnalysisSchema>;
-
 interface NewsAnalysisProps {
-  selectedNews: AnalyzeNewsSentimentInput | null;
+  selectedNews: AnalyzeNewsSentimentOutput | null;
 }
 
 const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
@@ -39,144 +23,32 @@ const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impac
 
 
 export default function NewsAnalysis({ selectedNews }: NewsAnalysisProps) {
-  const [analysis, setAnalysis] = useState<AnalyzeNewsSentimentOutput | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const form = useForm<NewsAnalysisFormValues>({
-    resolver: zodResolver(newsAnalysisSchema),
-    defaultValues: {
-      ticker: "",
-      headline: "",
-      content: "",
-    },
-  });
-
-  const onSubmit = async (data: NewsAnalysisFormValues) => {
-    setLoading(true);
-    setError(null);
-    setAnalysis(null);
-
-    try {
-      const result = await analyzeNewsSentiment(data);
-      setAnalysis(result);
-    } catch (e: any) {
-      console.error(e);
-      const errorMessage = e.message || "An unexpected error occurred.";
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Error Analyzing News",
-        description: errorMessage,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedNews) {
-      form.reset(selectedNews);
-      onSubmit(selectedNews);
-    }
-  }, [selectedNews]);
-
+  
   return (
     <Card>
       <CardHeader>
         <CardTitle>AI News Sentiment Analysis</CardTitle>
         <CardDescription>
-          Click a story from the feed or enter details below to analyze sentiment and potential impact.
+          Click a story from the feed to see the detailed AI analysis here.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="ticker"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Ticker Symbol</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., AAPL" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="headline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Headline</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter news headline" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="content"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Content</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Paste news article content here" {...field} rows={6} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <Newspaper className="mr-2 h-4 w-4" />
-                  Analyze News
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-      {(analysis || error || loading) && (
-        <CardFooter className="flex-col items-start gap-4">
-          <Separator />
-           {loading && (
-             <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Analyzing sentiment...</span>
-            </div>
-           )}
-          {analysis && !loading &&(
-            <div className="space-y-4 w-full">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-lg">Analysis Result</h3>
-                <SentimentDisplay sentiment={analysis.sentiment} impactScore={analysis.impactScore} />
-              </div>
-              <p className="text-sm text-foreground/80">{analysis.summary}</p>
-            </div>
-          )}
-          {error && !loading && (
-            <div className="p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-4 w-full">
-              <AlertTriangle className="h-6 w-6 shrink-0" />
-              <div>
-                <h3 className="font-semibold">Analysis Failed</h3>
-                <p className="text-sm">{error}</p>
-              </div>
-            </div>
-          )}
-        </CardFooter>
-      )}
+        {selectedNews ? (
+             <CardContent className="space-y-4 w-full">
+                <Separator />
+                <div className="flex justify-between items-center pt-4">
+                    <h3 className="font-semibold text-lg">Analysis Result</h3>
+                    <SentimentDisplay sentiment={selectedNews.sentiment} impactScore={selectedNews.impactScore} />
+                </div>
+                <p className="text-sm text-foreground/80">{selectedNews.summary}</p>
+             </CardContent>
+        ) : (
+            <CardContent>
+                <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border border-dashed rounded-lg">
+                    <Bot className="h-10 w-10" />
+                    <p className="text-sm">No news item selected. Click on an article in the feed to view its detailed AI analysis.</p>
+                </div>
+            </CardContent>
+        )}
     </Card>
   );
 }
