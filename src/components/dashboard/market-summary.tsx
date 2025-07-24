@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { summarizeMarketTrends, SummarizeMarketTrendsOutput } from '@/ai/flows/summarize-market-trends';
 import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flows/summarize-momentum-trends';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,12 +13,12 @@ type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput
 
 export default function MarketSummary() {
   const [summary, setSummary] = useState<SummaryOutput | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState('market');
   const { toast } = useToast();
 
-  const handleSummarize = async () => {
+  const handleSummarize = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSummary(null);
@@ -56,14 +55,22 @@ export default function MarketSummary() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [summaryType, toast]);
+
+  useEffect(() => {
+    handleSummarize();
+    const intervalId = setInterval(handleSummarize, 3600000); // 1 hour
+
+    return () => clearInterval(intervalId);
+  }, [handleSummarize]);
+
 
   return (
     <Card className="sm:col-span-4">
       <CardHeader className="pb-4">
         <CardTitle>AI Market Briefing</CardTitle>
         <CardDescription className="text-sm">
-          Select a briefing type and click generate for an AI-powered summary.
+          Briefing automatically updates every hour. Select a briefing type below.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -74,22 +81,16 @@ export default function MarketSummary() {
             </TabsList>
         </Tabs>
       </CardContent>
-      <CardFooter>
-        <Button onClick={handleSummarize} disabled={loading} className="w-full">
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
-            </>
-          ) : (
-            "Generate Summary"
-          )}
-        </Button>
-      </CardFooter>
-      {(summary || error) && (
+      {(loading || summary || error) && (
         <CardContent className="pt-4">
             <Separator className="mb-4" />
-          {summary && (
+          {loading && (
+             <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin"/>
+                <span>Analyzing...</span>
+             </div>
+          )}
+          {summary && !loading && (
               <div className="space-y-2">
                 <h3 className="font-semibold text-base">
                     {summaryType === 'market' ? 'Market Trend Analysis' : 'Momentum Analysis'}
@@ -97,7 +98,7 @@ export default function MarketSummary() {
                 <p className="text-sm text-foreground/80">{summary.summary}</p>
               </div>
           )}
-          {error && (
+          {error && !loading && (
               <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <p><span className="font-semibold">Analysis Failed:</span> {error}</p>
