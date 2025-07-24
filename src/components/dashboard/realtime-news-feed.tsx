@@ -37,14 +37,15 @@ const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementTy
     </div>
 );
 
-const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impactScore: number }) => {
+const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
+  const commonClasses = "text-xs";
   if (sentiment.toLowerCase() === 'positive') {
-    return <Badge variant="default" className="bg-green-500 hover:bg-green-600"><TrendingUp className="mr-1 h-3 w-3" /> Positive ({impactScore})</Badge>;
+    return <Badge variant="default" className={cn(commonClasses, "bg-green-500 hover:bg-green-600")}><TrendingUp className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Positive (${impactScore})`}</Badge>;
   }
   if (sentiment.toLowerCase() === 'negative') {
-    return <Badge variant="destructive"><TrendingDown className="mr-1 h-3 w-3" /> Negative ({impactScore})</Badge>;
+    return <Badge variant="destructive" className={cn(commonClasses)}><TrendingDown className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Negative (${impactScore})`}</Badge>;
   }
-  return <Badge variant="secondary"><Minus className="mr-1 h-3 w-3" /> Neutral ({impactScore})</Badge>;
+  return <Badge variant="secondary" className={cn(commonClasses)}><Minus className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Neutral (${impactScore})`}</Badge>;
 };
 
 export default function RealtimeNewsFeed() {
@@ -139,12 +140,20 @@ export default function RealtimeNewsFeed() {
                             : "hover:bg-muted/50"
                     )}>
                         <CollapsibleTrigger className="w-full p-3 text-left group">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
-                                    <p className="font-semibold leading-snug flex-1">{news.headline}</p>
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-start gap-3 flex-1">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
+                                        {news.analysis && (
+                                            <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
+                                        )}
+                                        {news.loading && (
+                                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    <p className="font-semibold leading-snug flex-1 pt-1">{news.headline}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 pt-1">
                                     <span className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</span>
                                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                 </div>
@@ -167,7 +176,7 @@ export default function RealtimeNewsFeed() {
                                         <Bot className="h-5 w-5 text-accent shrink-0"/>
                                         <h4 className="font-semibold">AI Sentiment Analysis</h4>
                                     </div>
-                                    {news.analysis && <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />}
+                                    {news.analysis && <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} showText />}
                                 </div>
                                 {news.loading && <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
                                 {news.error && <div className="flex items-center gap-2 text-destructive text-xs"><AlertTriangle className="h-4 w-4"/><span>Analysis Error: {news.error}</span></div>}

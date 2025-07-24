@@ -18,6 +18,7 @@ export default function MarketSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState('market');
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const handleSummarize = useCallback(async (type: string) => {
@@ -45,6 +46,7 @@ export default function MarketSummary() {
         result = await summarizeMomentumTrends({ newsFeed: mockNewsFeed });
       }
       setSummary(result);
+      setLastUpdated(new Date());
     } catch (e: any) {
       console.error(e);
       const errorMessage = e.message || "An unexpected error occurred.";
@@ -75,34 +77,37 @@ export default function MarketSummary() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+      <CardHeader className="flex flex-row items-start justify-between pb-2 space-y-0">
           <div className="space-y-1">
             <CardTitle className="text-2xl">AI Market Briefing</CardTitle>
-            <CardDescription className="text-sm">
-              Hourly AI-powered analysis of market trends and momentum.
+            <CardDescription className="flex items-center text-sm">
+              AI-powered analysis of market trends and momentum. 
+              {lastUpdated && (
+                  <span className='ml-2 text-xs text-muted-foreground'>
+                      (Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
+                  </span>
+              )}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={cn("flex items-center gap-1 rounded-md bg-muted p-1 transition-opacity")}>
-                <Button 
-                    variant={summaryType === 'market' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    onClick={() => handleSummaryTypeChange('market')}
-                    className={cn(summaryType === 'market' && 'bg-background text-foreground shadow-sm')}
-                >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Market
-                </Button>
-                <Button 
-                    variant={summaryType === 'momentum' ? 'default' : 'ghost'} 
-                    size="sm" 
-                    onClick={() => handleSummaryTypeChange('momentum')}
-                    className={cn(summaryType === 'momentum' && 'bg-background text-foreground shadow-sm')}
-                >
-                    <Zap className="h-4 w-4 mr-2" />
-                    Momentum
-                </Button>
-            </div>
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+            <Button
+                variant={summaryType === 'market' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleSummaryTypeChange('market')}
+                className={cn("h-auto px-3 py-1", summaryType === 'market' && 'bg-background text-foreground shadow-sm')}
+            >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Market
+            </Button>
+            <Button
+                variant={summaryType === 'momentum' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleSummaryTypeChange('momentum')}
+                className={cn("h-auto px-3 py-1", summaryType === 'momentum' && 'bg-background text-foreground shadow-sm')}
+            >
+                <Zap className="h-4 w-4 mr-2" />
+                Momentum
+            </Button>
           </div>
       </CardHeader>
       
