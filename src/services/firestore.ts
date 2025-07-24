@@ -389,6 +389,52 @@ export async function updateDataSource(id: string, dataSource: Partial<Omit<Data
 }
 
 
+// --- Feature Flag Management ---
+export interface FeatureFlag {
+    id: string;
+    name: string;
+    description: string;
+    enabled: boolean;
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlag[]> {
+    const flagsCol = db.collection('feature_flags');
+    const snapshot = await flagsCol.get();
+    
+    let flags: FeatureFlag[] = [];
+    snapshot.forEach(doc => {
+        flags.push({ id: doc.id, ...doc.data() } as FeatureFlag);
+    });
+
+    // If no flags, create defaults
+    if (flags.length === 0) {
+        const defaultFlags = [
+            { name: "AI Market Briefing", description: "Enable the AI-powered market summary on the dashboard.", enabled: true },
+            { name: "Real-time Scanners", description: "Allow users to access the market scanners page.", enabled: true },
+            { name: "User Watchlist", description: "Enable the personal stock watchlist feature for users.", enabled: true },
+        ];
+
+        const batch = db.batch();
+        const newFlags: FeatureFlag[] = [];
+
+        defaultFlags.forEach(flag => {
+            const docRef = flagsCol.doc();
+            batch.set(docRef, flag);
+            newFlags.push({ id: docRef.id, ...flag });
+        });
+
+        await batch.commit();
+        return newFlags;
+    }
+
+    return flags;
+}
+
+export async function updateFeatureFlag(id: string, enabled: boolean): Promise<void> {
+    await db.collection('feature_flags').doc(id).update({ enabled });
+}
+
+
 // --- DB Test ---
 export async function addTestDocument(): Promise<string> {
     const docData = {

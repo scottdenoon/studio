@@ -42,7 +42,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button disabled>Configure Features</Button>
+             <Button asChild>
+                <Link href="/admin/features">Configure Features</Link>
+             </Button>
           </CardContent>
         </Card>
         <Card>
