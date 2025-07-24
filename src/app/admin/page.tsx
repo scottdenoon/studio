@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ToggleRight, Newspaper, Bot, BarChart } from "lucide-react";
+import { Users, ToggleRight, Newspaper, Bot, BarChart, Database } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -88,6 +88,22 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <Button>Manage Scanners</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Database Test
+            </CardTitle>
+            <CardDescription>
+              Perform a test write to the database to ensure connectivity.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+                <Link href="/admin/db-test">Run Test</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

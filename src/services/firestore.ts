@@ -145,12 +145,14 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 
 
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>): Promise<string> {
-    const docRef = await addDoc(collection(db, "news_feed"), {
+    const newItem = {
         ...item,
-        timestamp: new Date().toISOString(),
-    });
+        timestamp: new Date().toISOString()
+    };
+    const docRef = await addDoc(collection(db, "news_feed"), newItem);
     return docRef.id;
 }
+
 
 export async function saveNewsItemAnalysis(id: string, analysis: AnalyzeNewsSentimentOutput): Promise<void> {
     const newsItemRef = doc(db, 'news_feed', id);
@@ -180,7 +182,6 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     const userDoc = await getDoc(userRef);
 
     if (userDoc.exists()) {
-        // Update last seen if user already exists
         await setDoc(userRef, { lastSeen: new Date().toISOString() }, { merge: true });
         return;
     }
@@ -192,14 +193,16 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     
     const now = new Date().toISOString();
     
-    await setDoc(userRef, {
+    const newUserProfile = {
         email: data.email,
         uid: data.uid,
         photoURL: data.photoURL || null,
         role: isFirstUser ? 'admin' : 'basic',
         createdAt: now,
         lastSeen: now,
-    });
+    };
+    
+    await setDoc(userRef, newUserProfile);
 }
 
 
@@ -259,5 +262,16 @@ export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promi
         ...item,
         createdAt: new Date().toISOString(),
     });
+    return docRef.id;
+}
+
+
+// --- DB Test ---
+export async function addTestDocument(): Promise<string> {
+    const docData = {
+        message: "Database connection test successful!",
+        timestamp: new Date().toISOString(),
+    };
+    const docRef = await addDoc(collection(db, "test_writes"), docData);
     return docRef.id;
 }
