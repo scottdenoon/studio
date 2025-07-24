@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Card,
   CardContent,
@@ -19,51 +19,65 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
-
-// In a real app, these would be fetched from a database.
-const initialPrompts: Record<string, string> = {
-  summarizeMarketTrendsPrompt: `You are an AI assistant that summarizes market conditions and trends.
-
-Summarize the market conditions and trends based on the following news feed:
-
-{{newsFeed}}`,
-  summarizeMomentumTrendsPrompt: `You are an AI assistant that summarizes market momentum.
-
-Focus on identifying stocks with high relative volume, significant price changes, and breaking news. Highlight key movers and the reasons for their momentum based on the following news feed:
-
-{{newsFeed}}`,
-  analyzeNewsSentimentPrompt: `You are an AI-powered financial news analyst.
-
-  Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
-
-  Ticker: {{{ticker}}}
-  Headline: {{{headline}}}
-  Content: {{{content}}}`,
-}
+import { getPrompts, savePrompt } from "@/services/firestore"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function PromptManagementPage() {
-  const [selectedPrompt, setSelectedPrompt] = useState(Object.keys(initialPrompts)[0])
-  const [promptContent, setPromptContent] = useState(initialPrompts[selectedPrompt])
+  const [prompts, setPrompts] = useState<Record<string, string>>({})
+  const [selectedPrompt, setSelectedPrompt] = useState<string>("")
+  const [promptContent, setPromptContent] = useState("")
   const [loading, setLoading] = useState(false)
+  const [loadingPrompts, setLoadingPrompts] = useState(true)
   const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const fetchedPrompts = await getPrompts()
+        setPrompts(fetchedPrompts)
+        if (Object.keys(fetchedPrompts).length > 0) {
+          const firstPromptKey = Object.keys(fetchedPrompts)[0]
+          setSelectedPrompt(firstPromptKey)
+          setPromptContent(fetchedPrompts[firstPromptKey])
+        }
+      } catch (error) {
+        console.error("Error fetching prompts:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load prompts from the database.",
+        })
+      } finally {
+        setLoadingPrompts(false)
+      }
+    }
+    fetchPrompts()
+  }, [toast])
 
   const handlePromptChange = (promptKey: string) => {
     setSelectedPrompt(promptKey)
-    setPromptContent(initialPrompts[promptKey])
+    setPromptContent(prompts[promptKey])
   }
 
   const handleSave = async () => {
     setLoading(true)
-    // In a real app, you would save this to your database.
-    // Here we'll just simulate an API call.
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    initialPrompts[selectedPrompt] = promptContent
-    setLoading(false)
-    toast({
-      title: "Prompt Saved",
-      description: `The prompt "${selectedPrompt}" has been updated successfully.`,
-    })
+    try {
+      await savePrompt(selectedPrompt, promptContent)
+      setPrompts(prev => ({...prev, [selectedPrompt]: promptContent}))
+      toast({
+        title: "Prompt Saved",
+        description: `The prompt "${selectedPrompt}" has been updated successfully.`,
+      })
+    } catch (error) {
+      console.error("Error saving prompt:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not save the prompt.",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -75,41 +89,52 @@ export default function PromptManagementPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="prompt-select" className="text-sm font-medium">Select Prompt</label>
-          <Select value={selectedPrompt} onValueChange={handlePromptChange}>
-            <SelectTrigger id="prompt-select" className="w-full md:w-[350px]">
-              <SelectValue placeholder="Select a prompt" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(initialPrompts).map(key => (
-                <SelectItem key={key} value={key}>
-                  {key}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-           <label htmlFor="prompt-content" className="text-sm font-medium">Prompt Content</label>
-          <Textarea
-            id="prompt-content"
-            value={promptContent}
-            onChange={e => setPromptContent(e.target.value)}
-            rows={15}
-            className="font-mono text-sm"
-          />
-        </div>
-        <Button onClick={handleSave} disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Changes"
-          )}
-        </Button>
+        {loadingPrompts ? (
+          <div className="space-y-6">
+              <Skeleton className="h-10 w-full md:w-[350px]" />
+              <Skeleton className="h-[280px] w-full" />
+              <Skeleton className="h-10 w-32" />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <label htmlFor="prompt-select" className="text-sm font-medium">Select Prompt</label>
+              <Select value={selectedPrompt} onValueChange={handlePromptChange} disabled={Object.keys(prompts).length === 0}>
+                <SelectTrigger id="prompt-select" className="w-full md:w-[350px]">
+                  <SelectValue placeholder="Select a prompt" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(prompts).map(key => (
+                    <SelectItem key={key} value={key}>
+                      {key}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="prompt-content" className="text-sm font-medium">Prompt Content</label>
+              <Textarea
+                id="prompt-content"
+                value={promptContent}
+                onChange={e => setPromptContent(e.target.value)}
+                rows={15}
+                className="font-mono text-sm"
+                disabled={!selectedPrompt}
+              />
+            </div>
+            <Button onClick={handleSave} disabled={loading || !selectedPrompt}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   )
