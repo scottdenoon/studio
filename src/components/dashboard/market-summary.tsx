@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -5,9 +6,11 @@ import { summarizeMarketTrends, SummarizeMarketTrendsOutput } from '@/ai/flows/s
 import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flows/summarize-momentum-trends';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, TrendingUp, AlertTriangle, Zap, SlidersHorizontal } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from '../ui/separator';
+import { Button } from '../ui/button';
+import { cn } from '@/lib/utils';
 
 type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput;
 
@@ -16,9 +19,10 @@ export default function MarketSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState('market');
+  const [showControls, setShowControls] = useState(true);
   const { toast } = useToast();
 
-  const handleSummarize = useCallback(async () => {
+  const handleSummarize = useCallback(async (type: string) => {
     setLoading(true);
     setError(null);
     setSummary(null);
@@ -37,7 +41,7 @@ export default function MarketSummary() {
 
     try {
       let result;
-      if (summaryType === 'market') {
+      if (type === 'market') {
         result = await summarizeMarketTrends({ newsFeed: mockNewsFeed });
       } else {
         result = await summarizeMomentumTrends({ newsFeed: mockNewsFeed });
@@ -55,57 +59,75 @@ export default function MarketSummary() {
     } finally {
       setLoading(false);
     }
-  }, [summaryType, toast]);
+  }, [toast]);
+  
+  const handleSummaryTypeChange = (type: string) => {
+      if (!type || type === summaryType) return;
+      setSummaryType(type);
+      handleSummarize(type);
+  }
 
   useEffect(() => {
-    handleSummarize();
-    const intervalId = setInterval(handleSummarize, 3600000); // 1 hour
+    handleSummarize(summaryType);
+    const intervalId = setInterval(() => handleSummarize(summaryType), 3600000); // 1 hour
 
     return () => clearInterval(intervalId);
-  }, [handleSummarize]);
+  }, [handleSummarize, summaryType]);
 
 
   return (
     <Card>
-      <CardHeader className="pb-4">
-        <CardTitle>AI Market Briefing</CardTitle>
-        <CardDescription className="text-sm">
-          Briefing automatically updates every hour. Select a briefing type below.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+          <div className="space-y-1">
+            <CardTitle className="text-2xl">AI Market Briefing</CardTitle>
+            <CardDescription className="text-sm">
+              Hourly AI-powered analysis of market trends and momentum.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <ToggleGroup 
+                type="single" 
+                value={summaryType} 
+                onValueChange={handleSummaryTypeChange}
+                className={cn("transition-opacity", !showControls && "opacity-0 pointer-events-none")}
+            >
+                <ToggleGroupItem value="market" aria-label="Toggle Market View">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Market
+                </ToggleGroupItem>
+                <ToggleGroupItem value="momentum" aria-label="Toggle Momentum View">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Momentum
+                </ToggleGroupItem>
+            </ToggleGroup>
+
+            <Button variant="ghost" size="icon" onClick={() => setShowControls(!showControls)}>
+                <SlidersHorizontal className="h-4 w-4"/>
+                <span className="sr-only">Toggle Controls</span>
+            </Button>
+          </div>
       </CardHeader>
-      <CardContent>
-         <Tabs value={summaryType} onValueChange={setSummaryType} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="market"><TrendingUp className="mr-2 h-4 w-4"/> Market</TabsTrigger>
-                <TabsTrigger value="momentum"><Zap className="mr-2 h-4 w-4"/> Momentum</TabsTrigger>
-            </TabsList>
-        </Tabs>
-      </CardContent>
-      {(loading || summary || error) && (
-        <CardContent className="pt-4">
-            <Separator className="mb-4" />
+      
+      <CardContent className="pt-2">
+          <Separator className="mb-4" />
           {loading && (
-             <div className="flex items-center gap-2 text-muted-foreground">
+             <div className="flex items-center gap-2 text-muted-foreground h-16">
                 <Loader2 className="h-4 w-4 animate-spin"/>
-                <span>Analyzing...</span>
+                <span>Analyzing market data...</span>
              </div>
           )}
           {summary && !loading && (
-              <div className="space-y-2">
-                <h3 className="font-semibold text-base">
-                    {summaryType === 'market' ? 'Market Trend Analysis' : 'Momentum Analysis'}
-                </h3>
-                <p className="text-sm text-foreground/80">{summary.summary}</p>
+              <div className="space-y-2 text-sm text-foreground/90 h-16">
+                <p>{summary.summary}</p>
               </div>
           )}
           {error && !loading && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm">
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm h-16">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <p><span className="font-semibold">Analysis Failed:</span> {error}</p>
               </div>
           )}
-        </CardContent>
-      )}
+      </CardContent>
     </Card>
   );
 }
