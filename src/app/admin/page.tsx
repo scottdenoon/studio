@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ToggleRight, Newspaper, Bot, BarChart, Database } from "lucide-react";
+import { Users, ToggleRight, Newspaper, Bot, BarChart, Database, DatabaseZap } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -90,6 +90,22 @@ export default function AdminPage() {
           <CardContent>
             <Button asChild>
                 <Link href="/admin/scanners">Manage Scanners</Link>
+            </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DatabaseZap className="h-5 w-5" />
+              Data Source Management
+            </CardTitle>
+            <CardDescription>
+              Manage real-time market data sources and API connections.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+                <Link href="/admin/data-sources">Manage Data Sources</Link>
             </Button>
           </CardContent>
         </Card>

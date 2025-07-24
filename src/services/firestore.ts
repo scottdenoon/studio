@@ -249,7 +249,9 @@ export async function addSampleUsers(): Promise<void> {
     ];
 
     for (const user of sampleUsers) {
-        const userRef = db.collection('users').doc();
+        // Note: In a real app, you'd want to create these in Firebase Auth first
+        // and use their actual UIDs. For this sample, we use the doc ID as the UID.
+        const userRef = db.collection('users').doc(); 
         usersBatch.set(userRef, {
             ...user,
             uid: userRef.id,
@@ -328,6 +330,44 @@ export async function updateScanner(id: string, scanner: Partial<Scanner>): Prom
     await db.collection('scanners').doc(id).update(scanner);
 }
 
+// --- Data Source Management ---
+export interface DataSource {
+  id?: string;
+  name: string;
+  type: "API" | "WebSocket";
+  url: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export async function getDataSources(): Promise<DataSource[]> {
+    const dataSourceCol = db.collection('data_sources');
+    const q = dataSourceCol.orderBy("createdAt", "desc");
+    const snapshot = await q.get();
+    const dataSources: DataSource[] = [];
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        dataSources.push({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt.toDate().toISOString(),
+        } as DataSource);
+    });
+    return dataSources;
+}
+
+export async function addDataSource(dataSource: Omit<DataSource, 'id' | 'createdAt'>): Promise<string> {
+    const docRef = await db.collection('data_sources').add({
+        ...dataSource,
+        createdAt: Timestamp.now(),
+    });
+    return docRef.id;
+}
+
+export async function updateDataSource(id: string, dataSource: Partial<Omit<DataSource, 'id' | 'createdAt'>>): Promise<void> {
+    await db.collection('data_sources').doc(id).update(dataSource);
+}
+
 
 // --- DB Test ---
 export async function addTestDocument(): Promise<string> {
@@ -338,5 +378,3 @@ export async function addTestDocument(): Promise<string> {
     const docRef = await db.collection("test_writes").add(docData);
     return docRef.id;
 }
-
-    
