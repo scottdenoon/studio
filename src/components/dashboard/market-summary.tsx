@@ -10,6 +10,7 @@ import { Loader2, TrendingUp, AlertTriangle, Zap, SlidersHorizontal } from 'luci
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
+import { getNewsFeed, NewsItem } from '@/services/firestore';
 
 type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput;
 
@@ -26,24 +27,21 @@ export default function MarketSummary() {
     setError(null);
     setSummary(null);
 
-    // In a real app, this would come from a live news feed API
-    const mockNewsFeed = `
-      - Market opens with strong gains, led by tech sector.
-      - NASDAQ up 1.5%, Dow Jones Industrial Average up 0.8%.
-      - ACME Corp (ACME) reports record earnings, stock jumps 12% on high volume.
-      - Federal Reserve signals potential interest rate hikes, causing some market jitters.
-      - Oil prices rise amid geopolitical tensions.
-      - Retail sector shows weakness after poor monthly sales data.
-      - Widget Co (WIDG) down 5% after competitor announcement.
-      - Innovate Inc (INVT) surges 20% on buyout rumors.
-    `;
-
     try {
+      const newsItems = await getNewsFeed();
+      
+      let newsFeedString = "No news available.";
+      if (newsItems.length > 0) {
+        newsFeedString = newsItems
+          .map(item => `Ticker: ${item.ticker}\nHeadline: ${item.headline}\nContent: ${item.content}`)
+          .join('\n\n---\n\n');
+      }
+
       let result;
       if (type === 'market') {
-        result = await summarizeMarketTrends({ newsFeed: mockNewsFeed });
+        result = await summarizeMarketTrends({ newsFeed: newsFeedString });
       } else {
-        result = await summarizeMomentumTrends({ newsFeed: mockNewsFeed });
+        result = await summarizeMomentumTrends({ newsFeed: newsFeedString });
       }
       setSummary(result);
       setLastUpdated(new Date());
