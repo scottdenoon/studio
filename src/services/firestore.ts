@@ -1,5 +1,4 @@
 
-
 "use server"
 
 import { db } from "@/lib/firebase";
@@ -124,7 +123,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
             headline: data.headline,
             content: data.content,
             momentum: data.momentum,
-            timestamp: data.timestamp, // Already a string
+            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp,
         };
         newsFeed.push(plainObject);
     });
@@ -156,10 +155,10 @@ export interface NewUserProfile {
     role: 'admin' | 'basic';
 }
 
-export async function addUser(uid: string, user: NewUserProfile): Promise<void> {
+export async function addUserProfile(uid: string, data: NewUserProfile): Promise<void> {
     const now = new Date().toISOString();
     await setDoc(doc(db, "users", uid), {
-        ...user,
+        ...data,
         createdAt: now,
         lastSeen: now,
     });
@@ -179,8 +178,8 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
         uid: docSnap.id,
         email: data.email,
         role: data.role,
-        createdAt: data.createdAt,
-        lastSeen: data.lastSeen,
+        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+        lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
     };
     return plainObject;
 }
@@ -196,8 +195,8 @@ export async function getUsers(): Promise<UserProfile[]> {
             uid: docSnap.id,
             email: data.email,
             role: data.role,
-            createdAt: data.createdAt, // Already a string
-            lastSeen: data.lastSeen,   // Already a string
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
+            lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
         };
         users.push(plainObject);
     });
