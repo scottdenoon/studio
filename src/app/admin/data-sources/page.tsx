@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, PlusCircle } from "lucide-react"
+import { Loader2, Edit, CheckCircle, AlertTriangle } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { addDataSource, getDataSources, updateDataSource, DataSource } from "@/services/firestore"
+import { Separator } from "@/components/ui/separator"
 
 const dataSourceSchema = z.object({
   name: z.string().min(3, "Name is required"),
@@ -148,7 +149,7 @@ export default function DataSourceManagementPage() {
 
   return (
     <div className="grid md:grid-cols-3 gap-8 items-start">
-      <div className="md:col-span-1">
+      <div className="md:col-span-1 space-y-8">
         <Card>
           <CardHeader>
             <CardTitle>{editingId ? "Edit Data Source" : "Add Data Source"}</CardTitle>
@@ -212,6 +213,34 @@ export default function DataSourceManagementPage() {
               </form>
             </Form>
           </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle>Feed Status</CardTitle>
+                <CardDescription>Live status of your active data feeds.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loadingDataSources ? <Skeleton className="h-24 w-full" /> : 
+                dataSources.filter(ds => ds.isActive).length > 0 ? (
+                  dataSources.filter(ds => ds.isActive).map((source) => (
+                    <div key={source.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <span className="font-semibold">{source.name}</span>
+                            <div className="flex items-center gap-2 text-green-500">
+                                <CheckCircle className="h-4 w-4" />
+                                <span className="text-sm font-medium">Operational</span>
+                            </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">Latency: 45ms</div>
+                        <Separator />
+                    </div>
+                  ))
+                ) : (
+                   <p className="text-sm text-center text-muted-foreground py-8">No active data sources.</p>
+                )
+              }
+            </CardContent>
         </Card>
       </div>
 

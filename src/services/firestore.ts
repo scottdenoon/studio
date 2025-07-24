@@ -4,6 +4,7 @@
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { getStockData, StockData } from "@/ai/tools/get-stock-data";
+import { logActivity } from "./logging";
 
 // --- Prompt Management ---
 
@@ -36,11 +37,17 @@ export async function getPrompts(): Promise<Record<string, string>> {
   {{{newsFeed}}}`
     };
 
+    let createdDefaults = false;
     for (const [id, content] of Object.entries(defaultPrompts)) {
         if (!prompts[id]) {
             await savePrompt(id, content);
             prompts[id] = content;
+            createdDefaults = true;
         }
+    }
+    
+    if (createdDefaults) {
+        await logActivity("INFO", "Initialized default AI prompts in database.");
     }
 
     return prompts;
@@ -57,12 +64,14 @@ export async function getPrompt(id: string): Promise<string> {
         if (id in defaultPrompts) {
             return defaultPrompts[id];
         }
+        await logActivity("ERROR", `Prompt with id "${id}" not found in database or defaults.`);
         throw new Error(`Prompt with id "${id}" not found!`);
     }
 }
 
 export async function savePrompt(id: string, content: string): Promise<void> {
     await db.collection("prompts").doc(id).set({ content });
+    await logActivity("INFO", `AI prompt "${id}" was saved.`);
 }
 
 // --- Watchlist Management ---
@@ -87,6 +96,7 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
     const stockData = await getStockData({ ticker: item.ticker });
     
     if (stockData.price === 0 && stockData.volume === 0) {
+        await logActivity("WARN", `User ${item.userId} failed to add invalid ticker "${item.ticker}" to watchlist.`);
         throw new Error(`Could not find a valid stock for ticker "${item.ticker}". Please check the symbol and try again.`);
     }
 
@@ -96,6 +106,7 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
     };
 
     const docRef = await db.collection("watchlist").add(newWatchlistItem);
+    await logActivity("INFO", `User ${item.userId} added "${item.ticker}" to watchlist.`);
     
     return {
         ...newWatchlistItem,
@@ -104,7 +115,12 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
 }
 
 export async function removeWatchlistItem(id: string): Promise<void> {
-    await db.collection("watchlist").doc(id).delete();
+    const docRef = db.collection("watchlist").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return;
+    const { userId, ticker } = doc.data()!;
+    await docRef.delete();
+    await logActivity("INFO", `User ${userId} removed "${ticker}" from watchlist.`);
 }
 
 
@@ -159,6 +175,7 @@ export async function addNewsItem(item: NewsItemCreate): Promise<string> {
         analysis: null, // Ensure analysis is null on creation
     };
     const docRef = await db.collection("news_feed").add(newItem);
+    await logActivity("INFO", `News item for "${item.ticker}" added.`, { headline: item.headline, id: docRef.id });
     return docRef.id;
 }
 
@@ -168,16 +185,23 @@ export async function updateNewsItem(id: string, item: NewsItemCreate): Promise<
         ...item,
         analysis: null, // Reset analysis when item is updated
     });
+    await logActivity("INFO", `News item for "${item.ticker}" updated.`, { id });
 }
 
 export async function deleteNewsItem(id: string): Promise<void> {
-    await db.collection("news_feed").doc(id).delete();
+    const docRef = db.collection("news_feed").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return;
+    const { ticker } = doc.data()!;
+    await docRef.delete();
+    await logActivity("INFO", `News item for "${ticker}" deleted.`, { id });
 }
 
 
 export async function saveNewsItemAnalysis(id: string, analysis: AnalyzeNewsSentimentOutput): Promise<void> {
     const newsItemRef = db.collection('news_feed').doc(id);
     await newsItemRef.update({ analysis });
+    await logActivity("INFO", `AI analysis saved for news item.`, { id, sentiment: analysis.sentiment });
 }
 
 
@@ -208,23 +232,26 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
             lastSeen: now,
             photoURL: data.photoURL || userDoc.data()?.photoURL || null
         });
+        await logActivity("INFO", `User signed in: ${data.email}`, { uid: data.uid });
         return;
     }
 
     const usersCol = db.collection('users');
     const userSnapshot = await usersCol.limit(3).get();
     const isEarlyUser = userSnapshot.size < 3;
+    const role = isEarlyUser ? 'admin' : 'basic';
 
     const newUserProfile = {
         email: data.email,
         uid: data.uid,
         photoURL: data.photoURL || null,
-        role: isEarlyUser ? 'admin' : 'basic',
+        role: role,
         createdAt: now,
         lastSeen: now,
     };
     
     await userRef.set(newUserProfile);
+    await logActivity("INFO", `New user profile created: ${data.email}`, { uid: data.uid, role });
 }
 
 
@@ -291,6 +318,7 @@ export async function addSampleUsers(): Promise<void> {
     });
 
     await usersBatch.commit();
+    await logActivity("INFO", "Seeded database with sample users.");
 }
 
 
@@ -310,6 +338,7 @@ export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promi
         ...item,
         createdAt: Timestamp.now(),
     });
+    await logActivity("INFO", `User ${item.userId} set alert for ${item.ticker}.`, { id: docRef.id });
     return docRef.id;
 }
 
@@ -353,11 +382,13 @@ export async function saveScanner(scanner: Omit<Scanner, 'id' | 'createdAt'>): P
         ...scanner,
         createdAt: Timestamp.now(),
     });
+    await logActivity("INFO", `Scanner "${scanner.name}" created.`, { id: docRef.id });
     return docRef.id;
 }
 
 export async function updateScanner(id: string, scanner: Partial<Scanner>): Promise<void> {
     await db.collection('scanners').doc(id).update(scanner);
+    await logActivity("INFO", `Scanner "${scanner.name || 'N/A'}" updated.`, { id });
 }
 
 // --- Data Source Management ---
@@ -391,11 +422,13 @@ export async function addDataSource(dataSource: Omit<DataSource, 'id' | 'created
         ...dataSource,
         createdAt: Timestamp.now(),
     });
+    await logActivity("INFO", `Data source "${dataSource.name}" added.`, { id: docRef.id });
     return docRef.id;
 }
 
 export async function updateDataSource(id: string, dataSource: Partial<Omit<DataSource, 'id' | 'createdAt'>>): Promise<void> {
     await db.collection('data_sources').doc(id).update(dataSource);
+    await logActivity("INFO", `Data source "${dataSource.name || 'N/A'}" updated.`, { id });
 }
 
 
@@ -434,6 +467,7 @@ export async function getFeatureFlags(): Promise<FeatureFlag[]> {
         });
 
         await batch.commit();
+        await logActivity("INFO", "Initialized default feature flags in database.");
         return newFlags;
     }
 
@@ -441,7 +475,11 @@ export async function getFeatureFlags(): Promise<FeatureFlag[]> {
 }
 
 export async function updateFeatureFlag(id: string, enabled: boolean): Promise<void> {
-    await db.collection('feature_flags').doc(id).update({ enabled });
+    const flagRef = db.collection('feature_flags').doc(id);
+    await flagRef.update({ enabled });
+    const flagDoc = await flagRef.get();
+    const flagName = flagDoc.data()?.name || 'N/A';
+    await logActivity("INFO", `Feature flag "${flagName}" status changed to ${enabled}.`, { id });
 }
 
 
@@ -452,5 +490,6 @@ export async function addTestDocument(): Promise<string> {
         timestamp: Timestamp.now(),
     };
     const docRef = await db.collection("test_writes").add(docData);
+    await logActivity("INFO", "Database write test executed successfully.", { id: docRef.id });
     return docRef.id;
 }
