@@ -118,9 +118,11 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(doc => {
         const data = doc.data();
-        const timestamp = data.timestamp instanceof Timestamp 
-            ? data.timestamp.toDate().toISOString() 
+        // Ensure timestamp is a serializable string
+        const timestamp = data.timestamp instanceof Timestamp
+            ? data.timestamp.toDate().toISOString()
             : (typeof data.timestamp === 'string' ? data.timestamp : new Date().toISOString());
+
         newsFeed.push({
             id: doc.id,
             ticker: data.ticker,
@@ -136,7 +138,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(), // Store as a string
     });
     return docRef.id;
 }
@@ -159,8 +161,7 @@ export interface NewUserProfile {
 
 export async function addUser(user: NewUserProfile): Promise<void> {
     const now = new Date().toISOString();
-    const userProfile: Omit<UserProfile, 'id'> = {
-      uid: user.uid,
+    const userProfile: Omit<UserProfile, 'uid'> = {
       email: user.email,
       role: user.role,
       createdAt: now,
@@ -176,11 +177,17 @@ export async function getUsers(): Promise<UserProfile[]> {
     const users: UserProfile[] = [];
     userSnapshot.forEach(doc => {
         const data = doc.data();
-        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString());
-        const lastSeen = data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : (data.lastSeen || new Date().toISOString());
+        
+        // Ensure createdAt and lastSeen are serializable strings
+        const createdAt = data.createdAt instanceof Timestamp 
+            ? data.createdAt.toDate().toISOString() 
+            : (data.createdAt || new Date().toISOString());
+        const lastSeen = data.lastSeen instanceof Timestamp 
+            ? data.lastSeen.toDate().toISOString() 
+            : (data.lastSeen || new Date().toISOString());
 
         users.push({
-            uid: data.uid,
+            uid: doc.id,
             email: data.email,
             role: data.role,
             createdAt: createdAt,
