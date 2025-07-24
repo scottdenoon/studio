@@ -1,7 +1,8 @@
+
 "use client"
 
 import { useState } from "react"
-import { useForm, useFieldArray } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -25,6 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 import { addNewsItem, NewsItem } from "@/services/firestore"
+import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment"
+import { saveNewsItemAnalysis } from "@/services/firestore"
 
 const newsItemSchema = z.object({
   ticker: z.string().min(1, "Ticker is required"),
@@ -64,12 +67,30 @@ export default function NewsManagementPage() {
   const onSubmit = async (data: NewsItemFormValues) => {
     setLoading(true)
     try {
-      const newsItem: Omit<NewsItem, 'id' | 'timestamp'> = data;
-      await addNewsItem(newsItem)
-      toast({
-        title: "News Item Added",
-        description: `The news item for "${data.ticker}" has been added successfully.`,
-      })
+      const newsItem: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'> = data;
+      const newsId = await addNewsItem(newsItem);
+
+      // Now, trigger the AI analysis and save it
+      try {
+        const analysis = await analyzeNewsSentiment({
+          ticker: data.ticker,
+          headline: data.headline,
+          content: data.content,
+        });
+        await saveNewsItemAnalysis(newsId, analysis);
+        toast({
+            title: "News Item Added & Analyzed",
+            description: `The news item for "${data.ticker}" has been added and analyzed successfully.`,
+        });
+      } catch (analysisError) {
+         console.error("Error analyzing news item:", analysisError)
+         toast({
+            variant: "destructive",
+            title: "Analysis Failed",
+            description: "The news item was added, but AI analysis failed.",
+         })
+      }
+
       form.reset()
     } catch (error) {
       console.error("Error saving news item:", error)
@@ -88,7 +109,7 @@ export default function NewsManagementPage() {
       <CardHeader>
         <CardTitle>Add News Item</CardTitle>
         <CardDescription>
-          Fill out the form below to add a new article to the real-time news feed.
+          Fill out the form below to add a new article to the real-time news feed. AI analysis will be triggered automatically.
         </CardDescription>
       </CardHeader>
       <CardContent>

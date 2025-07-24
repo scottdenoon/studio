@@ -2,7 +2,8 @@
 "use server"
 
 import { db } from "@/lib/firebase/server";
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp, limit } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp, limit, updateDoc } from "firebase/firestore";
+import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 
 // --- Prompt Management ---
 
@@ -108,6 +109,7 @@ export interface NewsItem {
         shortInterest: string;
         priceAction: string;
     };
+    analysis?: AnalyzeNewsSentimentOutput;
 }
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
@@ -124,6 +126,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
             content: data.content,
             momentum: data.momentum,
             timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate().toISOString() : data.timestamp,
+            analysis: data.analysis,
         };
         newsFeed.push(plainObject);
     });
@@ -131,12 +134,17 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 }
 
 
-export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp'>): Promise<string> {
+export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>): Promise<string> {
     const docRef = await addDoc(collection(db, "news_feed"), {
         ...item,
         timestamp: new Date().toISOString(),
     });
     return docRef.id;
+}
+
+export async function saveNewsItemAnalysis(id: string, analysis: AnalyzeNewsSentimentOutput): Promise<void> {
+    const newsItemRef = doc(db, 'news_feed', id);
+    await updateDoc(newsItemRef, { analysis });
 }
 
 
@@ -176,6 +184,7 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
     
     await setDoc(userRef, {
         email: data.email,
+        uid: data.uid,
         photoURL: data.photoURL || null,
         role: isFirstUser ? 'admin' : 'basic',
         createdAt: now,
@@ -222,4 +231,23 @@ export async function getUsers(): Promise<UserProfile[]> {
         users.push(plainObject);
     });
     return users;
+}
+
+// --- Alert Management ---
+export interface AlertItem {
+    id?: string;
+    userId: string;
+    ticker: string;
+    priceAbove?: number;
+    priceBelow?: number;
+    momentum?: string;
+    createdAt: string;
+}
+
+export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promise<string> {
+    const docRef = await addDoc(collection(db, "alerts"), {
+        ...item,
+        createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
 }

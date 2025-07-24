@@ -18,15 +18,14 @@ import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { getNewsFeed, NewsItem } from "@/services/firestore";
+import { getNewsFeed, NewsItem, saveNewsItemAnalysis } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 
 
-interface NewsItemWithAnalysis extends NewsItem {
-  analysis?: AnalyzeNewsSentimentOutput;
-  error?: string;
+interface NewsItemWithLoading extends NewsItem {
   loading: boolean;
+  error?: string;
 }
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
@@ -50,7 +49,7 @@ const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentim
 
 export default function RealtimeNewsFeed() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [newsItems, setNewsItems] = useState<NewsItemWithAnalysis[]>([]);
+  const [newsItems, setNewsItems] = useState<NewsItemWithLoading[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
   const { toast } = useToast();
 
@@ -65,27 +64,41 @@ export default function RealtimeNewsFeed() {
                  return;
             }
 
-            const itemsWithLoadingState: NewsItemWithAnalysis[] = initialNewsItems.map(item => ({...item, loading: true}));
+            const itemsWithLoadingState: NewsItemWithLoading[] = initialNewsItems.map(item => ({...item, loading: !item.analysis}));
             setNewsItems(itemsWithLoadingState);
             
             if (itemsWithLoadingState.length > 0) {
               setSelectedItem(itemsWithLoadingState[0].id!);
             }
 
-            const analyzedItems = await Promise.all(itemsWithLoadingState.map(async (item) => {
+            // Analyze items that don't have analysis yet
+            const itemsToAnalyze = itemsWithLoadingState.filter(item => !item.analysis);
+
+            const analyzedItemsPromises = itemsToAnalyze.map(async (item) => {
                 try {
                     const analysis = await analyzeNewsSentiment({
                         ticker: item.ticker,
                         headline: item.headline,
                         content: item.content
                     });
+                    await saveNewsItemAnalysis(item.id!, analysis);
                     return {...item, analysis, loading: false};
                 } catch (error: any) {
                     return {...item, error: error.message || "Analysis failed", loading: false};
                 }
-            }));
+            });
 
-            setNewsItems(analyzedItems);
+            const settledAnalyzedItems = await Promise.all(analyzedItemsPromises);
+
+            // Update the state with the new analysis results
+            setNewsItems(currentItems => {
+                const updatedItemsMap = new Map(currentItems.map(item => [item.id, item]));
+                settledAnalyzedItems.forEach(item => {
+                    updatedItemsMap.set(item.id, item);
+                });
+                return Array.from(updatedItemsMap.values());
+            });
+
         } catch (error) {
             console.error("Error fetching news feed:", error);
             toast({
@@ -121,7 +134,7 @@ export default function RealtimeNewsFeed() {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px]">
-            {loadingFeed ? (
+            {loadingFeed && newsItems.length === 0 ? (
                  <div className="space-y-2">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                  </div>

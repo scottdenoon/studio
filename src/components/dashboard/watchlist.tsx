@@ -41,9 +41,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { getWatchlist, addWatchlistItem, removeWatchlistItem, WatchlistItem } from "@/services/firestore"
+import { getWatchlist, addWatchlistItem, removeWatchlistItem, WatchlistItem, addAlert } from "@/services/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
@@ -58,7 +57,18 @@ const watchlistSchema = z.object({
     volume: z.string().min(1, "Volume is required"),
 })
 
+const alertSchema = z.object({
+    priceAbove: z.coerce.number().optional(),
+    priceBelow: z.coerce.number().optional(),
+    momentum: z.string().optional(),
+}).refine(data => data.priceAbove || data.priceBelow || data.momentum, {
+    message: "At least one alert condition is required.",
+    path: ["priceAbove"],
+});
+
+
 type WatchlistFormValues = z.infer<typeof watchlistSchema>
+type AlertFormValues = z.infer<typeof alertSchema>
 
 export default function Watchlist() {
     const { user } = useAuth();
@@ -79,6 +89,10 @@ export default function Watchlist() {
             volume: ""
         },
     });
+
+    const alertForm = useForm<AlertFormValues>({
+        resolver: zodResolver(alertSchema),
+    })
 
     useEffect(() => {
         if (!user) {
@@ -125,7 +139,7 @@ export default function Watchlist() {
         }
     };
     
-    const onSubmit = async (data: WatchlistFormValues) => {
+    const onAddSubmit = async (data: WatchlistFormValues) => {
         if (!user) return;
         setSubmitting(true);
         try {
@@ -144,6 +158,28 @@ export default function Watchlist() {
                 variant: "destructive",
                 title: "Error",
                 description: "Could not add the stock to your watchlist.",
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    }
+    
+    const onAlertSubmit = async (ticker: string, data: AlertFormValues) => {
+        if (!user) return;
+        setSubmitting(true);
+        try {
+            await addAlert({ ...data, userId: user.uid, ticker });
+            toast({
+                title: "Alert Set",
+                description: `Your alert for ${ticker} has been saved.`,
+            });
+            alertForm.reset();
+        } catch (error) {
+             console.error("Error setting alert:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not save the alert.",
             });
         } finally {
             setSubmitting(false);
@@ -175,7 +211,7 @@ export default function Watchlist() {
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onAddSubmit)} className="space-y-4">
                         <FormField control={form.control} name="ticker" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Ticker</FormLabel>
@@ -269,7 +305,7 @@ export default function Watchlist() {
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DialogTrigger asChild>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => alertForm.reset({priceAbove: Number((stock.price * 1.05).toFixed(2)), priceBelow: Number((stock.price * 0.95).toFixed(2)) })}>
                                 <Bell className="mr-2 h-4 w-4" />
                                 Set Alert
                             </DropdownMenuItem>
@@ -288,29 +324,37 @@ export default function Watchlist() {
                                 Get notified when your price or momentum targets are hit.
                             </DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="price-threshold" className="text-right">
-                                Price Above
-                                </Label>
-                                <Input id="price-threshold" type="number" defaultValue={(stock.price * 1.05).toFixed(2)} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="price-threshold-below" className="text-right">
-                                Price Below
-                                </Label>
-                                <Input id="price-threshold-below" type="number" defaultValue={(stock.price * 0.95).toFixed(2)} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="momentum" className="text-right">
-                                Momentum
-                                </Label>
-                                <Input id="momentum" placeholder="e.g., 5% gain in 10 mins" className="col-span-3" />
-                            </div>
-                            </div>
-                            <DialogFooter>
-                            <Button type="submit">Save Alert</Button>
-                            </DialogFooter>
+                             <Form {...alertForm}>
+                                <form onSubmit={alertForm.handleSubmit((data) => onAlertSubmit(stock.ticker, data))} className="space-y-4">
+                                    <FormField control={alertForm.control} name="priceAbove" render={({ field }) => (
+                                        <FormItem className="grid grid-cols-4 items-center gap-4">
+                                            <FormLabel className="text-right">Price Above</FormLabel>
+                                            <FormControl><Input type="number" step="0.01" className="col-span-3" {...field} /></FormControl>
+                                            <FormMessage className="col-start-2 col-span-3" />
+                                        </FormItem>
+                                    )} />
+                                     <FormField control={alertForm.control} name="priceBelow" render={({ field }) => (
+                                        <FormItem className="grid grid-cols-4 items-center gap-4">
+                                            <FormLabel className="text-right">Price Below</FormLabel>
+                                            <FormControl><Input type="number" step="0.01" className="col-span-3" {...field} /></FormControl>
+                                            <FormMessage className="col-start-2 col-span-3"/>
+                                        </FormItem>
+                                    )} />
+                                     <FormField control={alertForm.control} name="momentum" render={({ field }) => (
+                                        <FormItem className="grid grid-cols-4 items-center gap-4">
+                                            <FormLabel className="text-right">Momentum</FormLabel>
+                                            <FormControl><Input placeholder="e.g., 5% gain in 10 mins" className="col-span-3" {...field} /></FormControl>
+                                            <FormMessage className="col-start-2 col-span-3"/>
+                                        </FormItem>
+                                    )} />
+                                    <DialogFooter>
+                                        <Button type="submit" disabled={isSubmitting}>
+                                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Save Alert
+                                        </Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
                         </DialogContent>
                     </Dialog>
                     </TableCell>
