@@ -25,7 +25,9 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button>Manage Users</Button>
+            <Button asChild>
+                <Link href="/admin/users">Manage Users</Link>
+            </Button>
           </CardContent>
         </Card>
         <Card>
