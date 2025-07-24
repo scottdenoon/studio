@@ -7,7 +7,6 @@ import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flo
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, AlertTriangle, Zap, SlidersHorizontal } from 'lucide-react';
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
@@ -85,21 +84,26 @@ export default function MarketSummary() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <ToggleGroup 
-                type="single" 
-                value={summaryType} 
-                onValueChange={handleSummaryTypeChange}
-                className={cn("transition-opacity", !showControls && "opacity-0 pointer-events-none")}
-            >
-                <ToggleGroupItem value="market" aria-label="Toggle Market View">
+            <div className={cn("flex items-center gap-1 rounded-md bg-muted p-1 transition-opacity", !showControls && "opacity-0 pointer-events-none")}>
+                <Button 
+                    variant={summaryType === 'market' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    onClick={() => handleSummaryTypeChange('market')}
+                    className={cn(summaryType === 'market' && 'bg-background text-foreground shadow-sm')}
+                >
                     <TrendingUp className="h-4 w-4 mr-2" />
                     Market
-                </ToggleGroupItem>
-                <ToggleGroupItem value="momentum" aria-label="Toggle Momentum View">
+                </Button>
+                <Button 
+                    variant={summaryType === 'momentum' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    onClick={() => handleSummaryTypeChange('momentum')}
+                    className={cn(summaryType === 'momentum' && 'bg-background text-foreground shadow-sm')}
+                >
                     <Zap className="h-4 w-4 mr-2" />
                     Momentum
-                </ToggleGroupItem>
-            </ToggleGroup>
+                </Button>
+            </div>
 
             <Button variant="ghost" size="icon" onClick={() => setShowControls(!showControls)}>
                 <SlidersHorizontal className="h-4 w-4"/>
