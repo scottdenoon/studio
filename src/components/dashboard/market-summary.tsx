@@ -18,7 +18,6 @@ export default function MarketSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState('market');
-  const [showControls, setShowControls] = useState(true);
   const { toast } = useToast();
 
   const handleSummarize = useCallback(async (type: string) => {
@@ -84,7 +83,7 @@ export default function MarketSummary() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <div className={cn("flex items-center gap-1 rounded-md bg-muted p-1 transition-opacity", !showControls && "opacity-0 pointer-events-none")}>
+            <div className={cn("flex items-center gap-1 rounded-md bg-muted p-1 transition-opacity")}>
                 <Button 
                     variant={summaryType === 'market' ? 'default' : 'ghost'} 
                     size="sm" 
@@ -104,11 +103,6 @@ export default function MarketSummary() {
                     Momentum
                 </Button>
             </div>
-
-            <Button variant="ghost" size="icon" onClick={() => setShowControls(!showControls)}>
-                <SlidersHorizontal className="h-4 w-4"/>
-                <span className="sr-only">Toggle Controls</span>
-            </Button>
           </div>
       </CardHeader>
       
