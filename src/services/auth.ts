@@ -10,7 +10,7 @@ import {
     GoogleAuthProvider,
     signOut,
     type User
-} from 'firebase/auth';
+} from 'firebase/auth/web-extension';
 import { addUser, getUser, NewUserProfile } from './firestore';
 import { collection, getDocs } from 'firebase/firestore';
 
