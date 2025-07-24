@@ -7,3 +7,8 @@ runConfig:
   maxInstances: 1
 # Required for Firebase Admin SDK server-side authentication.
 serviceAccount: market-momentum-service-account
+scheduledJobs:
+  - schedule: "every 1 minutes"
+    uri: "/api/ingest-news"
+    httpMethod: "GET"
+    timeZone: "UTC"
