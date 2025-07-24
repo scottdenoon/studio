@@ -2,5 +2,18 @@
 {
   "firestore": {
     "rules": "firestore.rules"
+  },
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "id": "market-momentum-backend",
+      "region": "us-central1",
+      "serviceAccount": "market-momentum-service-account"
+    }
   }
 }

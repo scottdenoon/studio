@@ -2,15 +2,14 @@
 
 "use server"
 
-import { db } from "@/lib/firebase/server";
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp, limit, updateDoc } from "firebase/firestore";
+import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 
 // --- Prompt Management ---
 
 export async function getPrompts(): Promise<Record<string, string>> {
-    const promptsCol = collection(db, 'prompts');
-    const promptSnapshot = await getDocs(promptsCol);
+    const promptsCol = db.collection('prompts');
+    const promptSnapshot = await promptsCol.get();
     const prompts: Record<string, string> = {};
     promptSnapshot.forEach(doc => {
         prompts[doc.id] = doc.data().content;
@@ -48,17 +47,17 @@ export async function getPrompts(): Promise<Record<string, string>> {
 }
 
 export async function getPrompt(id: string): Promise<string> {
-    const docRef = doc(db, "prompts", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return docSnap.data().content;
+    const docRef = db.collection("prompts").doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+        return docSnap.data()!.content;
     } else {
         throw new Error("No such document!");
     }
 }
 
 export async function savePrompt(id: string, content: string): Promise<void> {
-    await setDoc(doc(db, "prompts", id), { content });
+    await db.collection("prompts").doc(id).set({ content });
 }
 
 // --- Watchlist Management ---
@@ -75,9 +74,9 @@ export interface WatchlistItem {
 }
 
 export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
-    const watchlistCol = collection(db, 'watchlist');
-    const q = query(watchlistCol, where("userId", "==", userId), orderBy("ticker"));
-    const watchlistSnapshot = await getDocs(q);
+    const watchlistCol = db.collection('watchlist');
+    const q = watchlistCol.where("userId", "==", userId).orderBy("ticker");
+    const watchlistSnapshot = await q.get();
     const watchlist: WatchlistItem[] = [];
     watchlistSnapshot.forEach(doc => {
         watchlist.push({ id: doc.id, ...(doc.data() as Omit<WatchlistItem, 'id'>) });
@@ -86,12 +85,12 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 }
 
 export async function addWatchlistItem(item: Omit<WatchlistItem, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, "watchlist"), item);
+    const docRef = await db.collection("watchlist").add(item);
     return docRef.id;
 }
 
 export async function removeWatchlistItem(id: string): Promise<void> {
-    await deleteDoc(doc(db, "watchlist", id));
+    await db.collection("watchlist").doc(id).delete();
 }
 
 
@@ -114,19 +113,21 @@ export interface NewsItem {
 }
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
-    const newsCol = collection(db, 'news_feed');
-    const q = query(newsCol, orderBy("timestamp", "desc"));
-    const newsSnapshot = await getDocs(q);
+    const newsCol = db.collection('news_feed');
+    const q = newsCol.orderBy("timestamp", "desc");
+    const newsSnapshot = await q.get();
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
         let timestamp;
+        // Handle both Firestore Timestamp and ISO string
         if (data.timestamp && data.timestamp instanceof Timestamp) {
             timestamp = data.timestamp.toDate().toISOString();
         } else if (typeof data.timestamp === 'string') {
             timestamp = data.timestamp;
         } else {
-            timestamp = new Date().toISOString();
+            // Fallback for invalid or missing timestamp
+            timestamp = new Date().toISOString(); 
         }
 
         const plainObject: NewsItem = {
@@ -147,16 +148,16 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>): Promise<string> {
     const newItem = {
         ...item,
-        timestamp: new Date().toISOString()
+        timestamp: Timestamp.now()
     };
-    const docRef = await addDoc(collection(db, "news_feed"), newItem);
+    const docRef = await db.collection("news_feed").add(newItem);
     return docRef.id;
 }
 
 
 export async function saveNewsItemAnalysis(id: string, analysis: AnalyzeNewsSentimentOutput): Promise<void> {
-    const newsItemRef = doc(db, 'news_feed', id);
-    await updateDoc(newsItemRef, { analysis });
+    const newsItemRef = db.collection('news_feed').doc(id);
+    await newsItemRef.update({ analysis });
 }
 
 
@@ -178,20 +179,18 @@ export interface NewUserProfile {
 }
 
 export async function addUserProfile(data: NewUserProfile): Promise<void> {
-    const userRef = doc(db, "users", data.uid);
-    const userDoc = await getDoc(userRef);
+    const userRef = db.collection("users").doc(data.uid);
+    const userDoc = await userRef.get();
+    const now = Timestamp.now();
 
-    if (userDoc.exists()) {
-        await setDoc(userRef, { lastSeen: new Date().toISOString() }, { merge: true });
+    if (userDoc.exists) {
+        await userRef.update({ lastSeen: now });
         return;
     }
 
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, limit(1));
-    const userSnapshot = await getDocs(q);
+    const usersCol = db.collection('users');
+    const userSnapshot = await usersCol.limit(1).get();
     const isFirstUser = userSnapshot.empty;
-    
-    const now = new Date().toISOString();
     
     const newUserProfile = {
         email: data.email,
@@ -202,34 +201,34 @@ export async function addUserProfile(data: NewUserProfile): Promise<void> {
         lastSeen: now,
     };
     
-    await setDoc(userRef, newUserProfile);
+    await userRef.set(newUserProfile);
 }
 
 
 export async function getUser(uid: string): Promise<UserProfile | null> {
-    const docRef = doc(db, "users", uid);
-    const docSnap = await getDoc(docRef);
+    const docRef = db.collection("users").doc(uid);
+    const docSnap = await docRef.get();
 
-    if (!docSnap.exists()) {
+    if (!docSnap.exists) {
         return null;
     }
 
-    const data = docSnap.data();
+    const data = docSnap.data()!;
     const plainObject: UserProfile = {
         uid: docSnap.id,
         email: data.email,
         role: data.role,
         photoURL: data.photoURL,
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
-        lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
+        createdAt: data.createdAt.toDate().toISOString(),
+        lastSeen: data.lastSeen.toDate().toISOString(),
     };
     return plainObject;
 }
 
 export async function getUsers(): Promise<UserProfile[]> {
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, orderBy("createdAt", "desc"));
-    const userSnapshot = await getDocs(q);
+    const usersCol = db.collection('users');
+    const q = usersCol.orderBy("createdAt", "desc");
+    const userSnapshot = await q.get();
     const users: UserProfile[] = [];
     userSnapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -238,8 +237,8 @@ export async function getUsers(): Promise<UserProfile[]> {
             email: data.email,
             role: data.role,
             photoURL: data.photoURL,
-            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
-            lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
+            createdAt: data.createdAt.toDate().toISOString(),
+            lastSeen: data.lastSeen.toDate().toISOString(),
         };
         users.push(plainObject);
     });
@@ -258,9 +257,9 @@ export interface AlertItem {
 }
 
 export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promise<string> {
-    const docRef = await addDoc(collection(db, "alerts"), {
+    const docRef = await db.collection("alerts").add({
         ...item,
-        createdAt: new Date().toISOString(),
+        createdAt: Timestamp.now(),
     });
     return docRef.id;
 }
@@ -270,8 +269,8 @@ export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promi
 export async function addTestDocument(): Promise<string> {
     const docData = {
         message: "Database connection test successful!",
-        timestamp: new Date().toISOString(),
+        timestamp: Timestamp.now(),
     };
-    const docRef = await addDoc(collection(db, "test_writes"), docData);
+    const docRef = await db.collection("test_writes").add(docData);
     return docRef.id;
 }

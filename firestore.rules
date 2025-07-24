@@ -3,11 +3,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow read and write for any authenticated user.
-    // This is a permissive rule for development to ensure functionality.
-    // For production, you would want to add more specific rules.
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    // Helper function to check for admin role
+    function isAdmin() {
+      // Allow reading user's own document to check the role.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users can read their own profile. Admins can read all profiles.
+    match /users/{userId} {
+      allow get: if request.auth.uid == userId;
+      allow list: if isAdmin();
+      // Nobody can write to user profiles directly for now to prevent role escalation.
+      // Role changes would need a secure backend process (e.g., a Cloud Function).
+      allow write: if false; 
+      allow create: if request.auth.uid == userId;
+    }
+
+    // News feed is readable by any authenticated user.
+    // Only admins can create, update, or delete news items.
+    match /news_feed/{newsId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Users can only manage their own watchlist items.
+    match /watchlist/{itemId} {
+      allow read, write, delete: if request.auth.uid == resource.data.userId;
+      allow create: if request.auth.uid == request.resource.data.userId;
+    }
+
+    // Prompts are readable by any authenticated user.
+    // Only admins can create or update prompts.
+    match /prompts/{promptId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Users can only manage their own alerts.
+    match /alerts/{alertId} {
+       allow read, write, delete: if request.auth.uid == resource.data.userId;
+       allow create: if request.auth.uid == request.resource.data.userId;
+    }
+
+    // Allow admins to perform test writes
+    match /test_writes/{testId} {
+        allow write: if isAdmin();
     }
   }
 }
