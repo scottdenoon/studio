@@ -1,4 +1,5 @@
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -287,8 +288,7 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
 
 export async function getUsers(): Promise<UserProfile[]> {
     const usersCol = db.collection('users');
-    const q = usersCol.orderBy("createdAt", "desc");
-    const userSnapshot = await q.get();
+    const userSnapshot = await usersCol.get();
     const users: UserProfile[] = [];
     userSnapshot.forEach(docSnap => {
         const data = docSnap.data();

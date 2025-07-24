@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -67,6 +68,11 @@ export default function UserManagementPage() {
     fetchUsers();
   }, [toast]);
 
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [users]);
+
+
   const formatLastSeen = (dateString: string) => {
     if (!dateString) return "Never";
     return `${formatDistanceToNow(new Date(dateString))} ago`;
@@ -118,14 +124,14 @@ export default function UserManagementPage() {
                         <TableCell><Skeleton className="h-8 w-8 ml-auto rounded-full" /></TableCell>
                     </TableRow>
                 ))
-            ) : users.length === 0 ? (
+            ) : sortedUsers.length === 0 ? (
                 <TableRow>
                     <TableCell colSpan={4} className="h-24 text-center">
                         No users found. New users will appear here after they sign up.
                     </TableCell>
                 </TableRow>
             ) : (
-                users.map((user) => (
+                sortedUsers.map((user) => (
                 <TableRow key={user.uid}>
                     <TableCell>
                     <div className="font-medium">{user.email}</div>
