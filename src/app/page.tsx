@@ -1,3 +1,4 @@
+
 'use client';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,6 +9,9 @@ import Watchlist from '@/components/dashboard/watchlist';
 import MarketSummary from '@/components/dashboard/market-summary';
 import RealtimeNewsFeed from '@/components/dashboard/realtime-news-feed';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -53,7 +57,22 @@ export default function DashboardPage() {
         <Header />
         <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
           <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-3">
-            <MarketSummary />
+            <div className='grid gap-4 md:grid-cols-2'>
+                <MarketSummary />
+                <div className="flex flex-col space-y-4">
+                    <div className="p-6 rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col justify-between">
+                       <div>
+                         <h2 className="text-2xl font-bold tracking-tight">Real-time Scanners</h2>
+                         <p className="text-muted-foreground">Discover breaking stocks that meet your custom criteria.</p>
+                       </div>
+                       <Button asChild className="mt-4 self-start">
+                           <Link href="/scanners">
+                                View Scanners <ArrowRight className="ml-2 h-4 w-4" />
+                           </Link>
+                       </Button>
+                    </div>
+                </div>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RealtimeNewsFeed />
