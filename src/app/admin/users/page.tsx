@@ -131,7 +131,7 @@ export default function UserManagementPage() {
                     <div className="font-medium">{user.email}</div>
                     </TableCell>
                     <TableCell>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                    <Badge variant={user.role === 'admin' ? 'default' : user.role === 'premium' ? 'secondary' : 'outline'}>
                         {user.role}
                     </Badge>
                     </TableCell>

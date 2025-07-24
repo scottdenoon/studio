@@ -243,22 +243,22 @@ export async function addSampleUsers(): Promise<void> {
     const now = Timestamp.now();
     const usersBatch = db.batch();
 
-    const sampleUsers: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'uid'>[] = [
-        { email: 'admin@example.com', role: 'admin', photoURL: `https://placehold.co/400x400.png` },
-        { email: 'user@example.com', role: 'basic', photoURL: `https://placehold.co/400x400.png` },
+    const sampleUsers: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'uid' | 'photoURL'>[] = [
+        { email: 'premium-user@example.com', role: 'premium' },
+        { email: 'basic-user@example.com', role: 'basic' },
     ];
-
-    for (const user of sampleUsers) {
-        // Note: In a real app, you'd want to create these in Firebase Auth first
-        // and use their actual UIDs. For this sample, we use the doc ID as the UID.
-        const userRef = db.collection('users').doc(); 
+    
+    const userRefs = sampleUsers.map(user => {
+        const userRef = db.collection('users').doc();
         usersBatch.set(userRef, {
             ...user,
             uid: userRef.id,
+            photoURL: `https://placehold.co/400x400.png`,
             createdAt: now,
             lastSeen: now,
         });
-    }
+        return userRef;
+    });
 
     await usersBatch.commit();
 }
