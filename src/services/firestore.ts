@@ -1,4 +1,5 @@
 
+
 "use server"
 
 import { db } from "@/lib/firebase";
@@ -125,7 +126,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
             content: data.content,
             momentum: data.momentum,
             timestamp: timestamp,
-        } as NewsItem);
+        });
     });
     return newsFeed;
 }
@@ -149,7 +150,7 @@ export interface UserProfile {
 }
 
 export async function addUser(user: Omit<UserProfile, 'createdAt' | 'lastSeen' | 'role'> & { role: 'admin' | 'basic' }): Promise<void> {
-    const now = Timestamp.fromDate(new Date());
+    const now = new Date();
     const userProfile = {
       ...user,
       createdAt: now,
@@ -175,7 +176,7 @@ export async function getUsers(): Promise<UserProfile[]> {
             role: data.role,
             createdAt: createdAt,
             lastSeen: lastSeen,
-        } as UserProfile);
+        });
     });
     return users;
 }
