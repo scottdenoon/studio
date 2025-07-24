@@ -7,7 +7,6 @@ import NewsAnalysis from '@/components/dashboard/news-analysis';
 import RealtimeNewsFeed from '@/components/dashboard/realtime-news-feed';
 import { useState } from 'react';
 import { AnalyzeNewsSentimentOutput } from '@/ai/flows/analyze-news-sentiment';
-import DashboardGrid from '@/components/dashboard/dashboard-grid';
 
 export default function DashboardPage() {
   const [selectedNews, setSelectedNews] = useState<AnalyzeNewsSentimentOutput | null>(null);
@@ -17,21 +16,19 @@ export default function DashboardPage() {
       <Sidebar />
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <Header />
-        <main className="flex-1 p-4 sm:px-6 sm:py-0">
-          <DashboardGrid>
-             <div key="market-summary">
-                <MarketSummary />
-             </div>
-             <div key="realtime-news-feed">
+        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
+          <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-3">
+            <MarketSummary />
+            <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="lg:col-span-2">
                 <RealtimeNewsFeed onSelectNews={setSelectedNews} />
-             </div>
-             <div key="news-analysis">
+              </div>
+              <div className="grid auto-rows-max items-start gap-4 md:gap-8">
                 <NewsAnalysis selectedNews={selectedNews} />
-             </div>
-             <div key="watchlist">
                 <Watchlist />
-             </div>
-          </DashboardGrid>
+              </div>
+            </div>
+          </div>
         </main>
       </div>
     </div>
