@@ -1,6 +1,5 @@
 import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
-import RealtimeChart from '@/components/dashboard/realtime-chart';
 import Watchlist from '@/components/dashboard/watchlist';
 import MarketSummary from '@/components/dashboard/market-summary';
 import NewsAnalysis from '@/components/dashboard/news-analysis';
@@ -16,7 +15,6 @@ export default function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
               <MarketSummary />
             </div>
-            <RealtimeChart />
             <NewsAnalysis />
           </div>
           <div>
