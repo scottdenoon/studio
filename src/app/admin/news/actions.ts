@@ -3,7 +3,8 @@
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { logActivity } from "@/services/logging";
-import { addNewsItem } from "@/services/firestore";
+import { addNewsItem, saveNewsItemAnalysis } from "@/services/firestore";
+import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
 
 // --- News Source Management ---
 export interface NewsSource {
@@ -59,6 +60,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
     const sources = await getNewsSources();
     const activeSources = sources.filter(s => s.isActive && s.type === 'API');
     let importedCount = 0;
+    const analysisPromises: Promise<void>[] = [];
 
     for (const source of activeSources) {
         try {
@@ -80,9 +82,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                     continue;
                 }
                 
-                // Note: In a real-world scenario, you'd add more robust duplicate checking.
-                // For this example, we'll just add the items.
-                await addNewsItem({
+                const newsItemId = await addNewsItem({
                     ticker: article.ticker,
                     headline: article.headline,
                     content: article.content,
@@ -95,6 +95,19 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                     }
                 });
                 importedCount++;
+
+                // Trigger AI analysis asynchronously
+                const analysisPromise = analyzeNewsSentiment({ 
+                    ticker: article.ticker, 
+                    headline: article.headline, 
+                    content: article.content 
+                }).then(analysis => {
+                    return saveNewsItemAnalysis(newsItemId, analysis);
+                }).catch(err => {
+                    console.error(`Error analyzing news item ${newsItemId}:`, err);
+                    logActivity("ERROR", `Failed to analyze news item for ${article.ticker}`, { id: newsItemId, error: (err as Error).message });
+                });
+                analysisPromises.push(analysisPromise);
             }
              await logActivity("INFO", `Fetched ${articles.length} articles from source: ${source.name}`);
 
@@ -102,6 +115,13 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
             console.error(`Error fetching from ${source.name}:`, error);
             await logActivity("ERROR", `Error fetching from news source: ${source.name}`, { error: (error as Error).message });
         }
+    }
+    
+    // Wait for all analysis tasks to complete
+    await Promise.all(analysisPromises);
+
+    if (importedCount > 0) {
+        await logActivity("INFO", `Completed analysis for ${analysisPromises.length} news items.`);
     }
 
     return { importedCount };
