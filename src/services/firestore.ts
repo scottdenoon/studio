@@ -431,6 +431,55 @@ export async function updateDataSource(id: string, dataSource: Partial<Omit<Data
     await logActivity("INFO", `Data source "${dataSource.name || 'N/A'}" updated.`, { id });
 }
 
+// --- News Source Management ---
+export interface NewsSource {
+  id?: string;
+  name: string;
+  type: "API" | "WebSocket";
+  url: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export async function getNewsSources(): Promise<NewsSource[]> {
+    const newsSourceCol = db.collection('news_sources');
+    const q = newsSourceCol.orderBy("createdAt", "desc");
+    const snapshot = await q.get();
+    const newsSources: NewsSource[] = [];
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        newsSources.push({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt.toDate().toISOString(),
+        } as NewsSource);
+    });
+    return newsSources;
+}
+
+export async function addNewsSource(newsSource: Omit<NewsSource, 'id' | 'createdAt'>): Promise<string> {
+    const docRef = await db.collection('news_sources').add({
+        ...newsSource,
+        createdAt: Timestamp.now(),
+    });
+    await logActivity("INFO", `News source "${newsSource.name}" added.`, { id: docRef.id });
+    return docRef.id;
+}
+
+export async function updateNewsSource(id: string, newsSource: Partial<Omit<NewsSource, 'id' | 'createdAt'>>): Promise<void> {
+    await db.collection('news_sources').doc(id).update(newsSource);
+    await logActivity("INFO", `News source "${newsSource.name || 'N/A'}" updated.`, { id });
+}
+
+export async function deleteNewsSource(id: string): Promise<void> {
+    const docRef = db.collection("news_sources").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return;
+    const { name } = doc.data()!;
+    await docRef.delete();
+    await logActivity("INFO", `News source "${name}" deleted.`, { id });
+}
+
 
 // --- Feature Flag Management ---
 export interface FeatureFlag {
@@ -560,3 +609,5 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     await docRef.delete();
     await logActivity("INFO", `User ${userId} deleted journal entry for ${ticker}.`, { id });
 }
+
+    

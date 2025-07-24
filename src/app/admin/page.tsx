@@ -51,7 +51,7 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Newspaper className="h-5 w-5" />
-              News Feed Management
+              News Source Management
             </CardTitle>
             <CardDescription>
               Add, manage, and delete news sources and ingestion settings.
@@ -59,7 +59,7 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
              <Button asChild>
-                <Link href="/admin/news">Manage News Feeds</Link>
+                <Link href="/admin/news">Manage News Sources</Link>
              </Button>
           </CardContent>
         </Card>
@@ -147,3 +147,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
+    

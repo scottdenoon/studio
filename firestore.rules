@@ -3,69 +3,78 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check for admin role
+
+    // Helper function to check for Admin role
     function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // --- Collection Rules ---
-
-    // Users: Admins can R/W all. Users can R/W their own doc.
+    // Users can only read/write their own profile, Admins can read/write any.
     match /users/{userId} {
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow read, write: if request.auth.uid == userId || isAdmin();
+    }
+    
+    // Allow admins to list users for the admin panel
+    match /users/{document=**} {
+       allow list: if isAdmin();
     }
 
-    // Watchlist: Users can R/W their own items.
-    match /watchlist/{document=**} {
-      allow read, list: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create, delete: if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Alerts: Users can R/W their own alerts.
-    match /alerts/{document=**} {
-       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Authenticated users can read public collections
+    match /scanners/{scannerId} {
+      allow read: if request.auth != null;
     }
 
-    // Trade Journal: Users can R/W their own entries
-    match /trade_journal/{document=**} {
-      allow read, list, create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    match /feature_flags/{flagId} {
+      allow read: if request.auth != null;
+    }
+    
+    match /news_feed/{newsId} {
+        allow read: if request.auth != null;
     }
 
-    // News Feed: Public read, admin write.
-    match /news_feed/{document=**} {
-      allow read;
-      allow write: if isAdmin();
+    // Watchlist items can only be managed by their owner
+    match /watchlist/{itemId} {
+      allow read, create, delete: if request.auth.uid == request.resource.data.userId;
+      allow list: if request.auth.uid == request.query.where.userId;
     }
     
-    // Scanners: Public read, admin write.
-    match /scanners/{document=**} {
-        allow read;
-        allow write: if isAdmin();
-    }
-    
-    // Data Sources: Admin only.
-    match /data_sources/{document=**} {
-        allow read, write: if isAdmin();
-    }
-    
-    // Feature Flags: Public read, admin write.
-    match /feature_flags/{document=**} {
-        allow read;
-        allow write: if isAdmin();
+    // Alerts can only be managed by their owner
+    match /alerts/{alertId} {
+        allow create: if request.auth.uid == request.resource.data.userId;
     }
 
-    // Prompts: Admin only.
-    match /prompts/{document=**} {
-        allow read, write: if isAdmin();
+    // Journal entries can only be managed by their owner
+    match /trade_journal/{entryId} {
+       allow read, create, update, delete: if request.auth.uid == request.resource.data.userId;
+    }
+
+    // Admin-only collections
+    match /prompts/{promptId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /data_sources/{sourceId} {
+      allow read, write: if isAdmin();
     }
     
-    // Logs & Test Writes: Admin only.
-    match /logs/{document=**} {
+    match /news_sources/{sourceId} {
         allow read, write: if isAdmin();
     }
-    match /test_writes/{document=**} {
-        allow read, write: if isAdmin();
+
+    match /logs/{logId} {
+      allow read: if isAdmin();
+    }
+    
+    // Deny writes to logs from client
+    match /logs/{logId} {
+        allow write: if false;
+    }
+
+    // Allow test writes
+    match /test_writes/{docId} {
+      allow create: if true;
     }
   }
 }
+
+    
