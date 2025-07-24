@@ -121,7 +121,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         const data = docSnap.data();
         let timestamp;
         // Handle both Firestore Timestamp and ISO string
-        if (data.timestamp && data.timestamp instanceof Timestamp) {
+        if (data.timestamp && data.timestamp.toDate) {
             timestamp = data.timestamp.toDate().toISOString();
         } else if (typeof data.timestamp === 'string') {
             timestamp = data.timestamp;

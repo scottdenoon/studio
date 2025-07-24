@@ -1,17 +1,14 @@
 import admin from 'firebase-admin';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
-// Check if the app is already initialized
+// Check if the app is already initialized to prevent errors in development environments with hot-reloading.
 if (!admin.apps.length) {
   try {
     admin.initializeApp();
   } catch (error: any) {
-    if (error.code === 'app/duplicate-app') {
-      // This can happen in development environments with hot-reloading
-      console.log('Firebase Admin already initialized.');
-    } else {
-      console.error('Firebase Admin initialization error:', error);
-    }
+    // In a managed environment, this should not fail.
+    // Logging the error for debugging purposes.
+    console.error('Firebase Admin initialization error:', error);
   }
 }
 
