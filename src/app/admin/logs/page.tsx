@@ -72,7 +72,7 @@ export default function SystemLogsPage() {
 
     // Cleanup subscription on component unmount
     return () => unsubscribe();
-  }, [toast, loading]);
+  }, [toast]);
 
 
   const getSeverityBadge = (severity: "INFO" | "WARN" | "ERROR") => {
