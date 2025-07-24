@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { MoreHorizontal, Bell, PlusCircle, Trash, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -84,32 +84,31 @@ export default function Watchlist() {
         resolver: zodResolver(alertSchema),
     })
 
-    useEffect(() => {
+    const fetchWatchlist = useCallback(async () => {
         if (!user) {
             setWatchlist([]);
             setLoading(false);
             return;
-        };
+        }
+        setLoading(true);
+        try {
+            const items = await getWatchlist(user.uid);
+            setWatchlist(items);
+        } catch (error) {
+            console.error("Error fetching watchlist:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not load your watchlist.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [user, toast]);
 
-        const fetchWatchlist = async () => {
-            setLoading(true);
-            try {
-                const items = await getWatchlist(user.uid);
-                setWatchlist(items);
-            } catch (error) {
-                console.error("Error fetching watchlist:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "Could not load your watchlist.",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
+    useEffect(() => {
         fetchWatchlist();
-    }, [toast, user]);
+    }, [fetchWatchlist]);
 
     const handleRemove = async (id: string, ticker: string) => {
         try {
@@ -133,6 +132,16 @@ export default function Watchlist() {
         if (!user) return;
         setSubmitting(true);
         try {
+            // Check if stock is already in the watchlist
+            if (watchlist.some(item => item.ticker === data.ticker)) {
+                 toast({
+                    variant: "destructive",
+                    title: "Stock Exists",
+                    description: `${data.ticker} is already in your watchlist.`,
+                });
+                return;
+            }
+
             const newWatchlistItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
             setWatchlist(prev => [...prev, newWatchlistItem]);
             toast({
