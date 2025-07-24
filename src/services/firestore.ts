@@ -2,6 +2,7 @@
 
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -138,7 +139,8 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const newsSnapshot = await newsCol.get();
+    const q = newsCol.orderBy("timestamp", "desc");
+    const newsSnapshot = await q.get();
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -156,7 +158,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
-    return newsFeed;
+    return newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 
