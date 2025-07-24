@@ -2,7 +2,7 @@
 "use server"
 
 import { db } from "@/lib/firebase/server";
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp, limit } from "firebase/firestore";
 
 // --- Prompt Management ---
 
@@ -148,17 +148,36 @@ export interface UserProfile {
     role: 'admin' | 'basic' | 'premium';
     createdAt: string; 
     lastSeen: string;
+    photoURL?: string;
 }
 
 export interface NewUserProfile {
+    uid: string;
     email: string;
-    role: 'admin' | 'basic' | 'premium';
+    photoURL?: string | null;
 }
 
-export async function addUserProfile(uid: string, data: NewUserProfile): Promise<void> {
+export async function addUserProfile(data: NewUserProfile): Promise<void> {
+    const userRef = doc(db, "users", data.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+        // Update last seen if user already exists
+        await setDoc(userRef, { lastSeen: new Date().toISOString() }, { merge: true });
+        return;
+    }
+
+    const usersCol = collection(db, 'users');
+    const q = query(usersCol, limit(1));
+    const userSnapshot = await getDocs(q);
+    const isFirstUser = userSnapshot.empty;
+    
     const now = new Date().toISOString();
-    await setDoc(doc(db, "users", uid), {
-        ...data,
+    
+    await setDoc(userRef, {
+        email: data.email,
+        photoURL: data.photoURL || null,
+        role: isFirstUser ? 'admin' : 'basic',
         createdAt: now,
         lastSeen: now,
     });
@@ -178,6 +197,7 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
         uid: docSnap.id,
         email: data.email,
         role: data.role,
+        photoURL: data.photoURL,
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
         lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
     };
@@ -195,6 +215,7 @@ export async function getUsers(): Promise<UserProfile[]> {
             uid: docSnap.id,
             email: data.email,
             role: data.role,
+            photoURL: data.photoURL,
             createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
             lastSeen: data.lastSeen instanceof Timestamp ? data.lastSeen.toDate().toISOString() : data.lastSeen,
         };
