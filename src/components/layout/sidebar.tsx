@@ -12,6 +12,7 @@ import {
   Star,
   BarChart,
   Users,
+  BookText,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
     { href: "/", icon: Home, label: "Dashboard" },
     { href: "/scanners", icon: BarChart, label: "Scanners" },
+    { href: "/journal", icon: BookText, label: "Journal" },
     { href: "#", icon: Star, label: "Watchlists" },
     { href: "#", icon: Newspaper, label: "News" },
     { href: "#", icon: LineChart, label: "Charts" },

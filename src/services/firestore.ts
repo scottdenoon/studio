@@ -493,3 +493,70 @@ export async function addTestDocument(): Promise<string> {
     await logActivity("INFO", "Database write test executed successfully.", { id: docRef.id });
     return docRef.id;
 }
+
+// --- Trade Journal Management ---
+export interface TradeJournalEntry {
+    id?: string;
+    userId: string;
+    ticker: string;
+    entryDate: string;
+    exitDate: string;
+    entryPrice: number;
+    exitPrice: number;
+    quantity: number;
+    notes?: string;
+    imageUrl?: string;
+    createdAt: string;
+}
+
+export type TradeJournalEntryCreate = Omit<TradeJournalEntry, 'id' | 'createdAt'>;
+
+export async function getJournalEntries(userId: string): Promise<TradeJournalEntry[]> {
+    const journalCol = db.collection('trade_journal');
+    const q = journalCol.where('userId', '==', userId).orderBy("entryDate", "desc");
+    const snapshot = await q.get();
+    const entries: TradeJournalEntry[] = [];
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        entries.push({
+            id: docSnap.id,
+            ...data,
+            entryDate: data.entryDate.toDate().toISOString(),
+            exitDate: data.exitDate.toDate().toISOString(),
+            createdAt: data.createdAt.toDate().toISOString(),
+        } as TradeJournalEntry);
+    });
+    return entries;
+}
+
+export async function addJournalEntry(entry: TradeJournalEntryCreate): Promise<string> {
+    const docRef = await db.collection('trade_journal').add({
+        ...entry,
+        entryDate: Timestamp.fromDate(new Date(entry.entryDate)),
+        exitDate: Timestamp.fromDate(new Date(entry.exitDate)),
+        createdAt: Timestamp.now(),
+    });
+    await logActivity("INFO", `User ${entry.userId} added journal entry for ${entry.ticker}.`, { id: docRef.id });
+    return docRef.id;
+}
+
+export async function updateJournalEntry(id: string, entry: Partial<TradeJournalEntryCreate>): Promise<void> {
+    const updatedData: Record<string, any> = { ...entry };
+    if (entry.entryDate) {
+        updatedData.entryDate = Timestamp.fromDate(new Date(entry.entryDate));
+    }
+    if (entry.exitDate) {
+        updatedData.exitDate = Timestamp.fromDate(new Date(entry.exitDate));
+    }
+    await db.collection('trade_journal').doc(id).update(updatedData);
+    await logActivity("INFO", `Journal entry ${id} updated.`, { ticker: entry.ticker });
+}
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+    const docRef = db.collection("trade_journal").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return;
+    const { userId, ticker } = doc.data()!;
+    await docRef.delete();
+    await logActivity("INFO", `User ${userId} deleted journal entry for ${ticker}.`, { id });
+}

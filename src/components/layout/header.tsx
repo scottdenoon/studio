@@ -16,6 +16,7 @@ import {
   LogOut,
   LogIn,
   BarChart,
+  BookText,
 } from 'lucide-react';
 
 import {
@@ -77,6 +78,13 @@ export default function Header() {
             >
               <BarChart className="h-5 w-5" />
               Scanners
+            </Link>
+            <Link
+              href="/journal"
+              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+            >
+              <BookText className="h-5 w-5" />
+              Journal
             </Link>
             <Link
               href="#"
