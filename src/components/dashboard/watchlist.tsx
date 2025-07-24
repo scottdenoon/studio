@@ -49,12 +49,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useAuth } from "@/hooks/use-auth"
 
 const watchlistSchema = z.object({
-    ticker: z.string().min(1, "Ticker is required").max(5, "Ticker is too long"),
-    name: z.string().min(1, "Name is required"),
-    price: z.coerce.number().positive("Price must be positive"),
-    change: z.coerce.number(),
-    changePercent: z.coerce.number(),
-    volume: z.string().min(1, "Volume is required"),
+    ticker: z.string().min(1, "Ticker is required").max(5, "Ticker is too long").transform(value => value.toUpperCase()),
 })
 
 const alertSchema = z.object({
@@ -82,11 +77,6 @@ export default function Watchlist() {
         resolver: zodResolver(watchlistSchema),
         defaultValues: {
             ticker: "",
-            name: "",
-            price: 0,
-            change: 0,
-            changePercent: 0,
-            volume: ""
         },
     });
 
@@ -143,9 +133,8 @@ export default function Watchlist() {
         if (!user) return;
         setSubmitting(true);
         try {
-            const newWatchlistItem = { ...data, userId: user.uid };
-            const id = await addWatchlistItem(newWatchlistItem);
-            setWatchlist(prev => [...prev, { ...newWatchlistItem, id}]);
+            const newWatchlistItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
+            setWatchlist(prev => [...prev, newWatchlistItem]);
             toast({
                 title: "Stock Added",
                 description: `${data.ticker} has been added to your watchlist.`,
@@ -154,10 +143,11 @@ export default function Watchlist() {
             form.reset();
         } catch (error) {
             console.error("Error adding watchlist item:", error);
+            const errorMessage = (error instanceof Error) ? error.message : "An unknown error occurred.";
             toast({
                 variant: "destructive",
-                title: "Error",
-                description: "Could not add the stock to your watchlist.",
+                title: "Error Adding Stock",
+                description: errorMessage,
             });
         } finally {
             setSubmitting(false);
@@ -207,7 +197,7 @@ export default function Watchlist() {
                 <DialogHeader>
                     <DialogTitle>Add to Watchlist</DialogTitle>
                     <DialogDescription>
-                        Enter the details for the new stock.
+                        Enter a stock ticker to add it to your watchlist.
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -215,31 +205,11 @@ export default function Watchlist() {
                         <FormField control={form.control} name="ticker" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Ticker</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
+                                <FormControl><Input {...field} placeholder="e.g., AAPL" /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
-                        <FormField control={form.control} name="name" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Company Name</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="price" render={({ field }) => (
-                             <FormItem>
-                                <FormLabel>Price</FormLabel>
-                                <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                         <FormField control={form.control} name="volume" render={({ field }) => (
-                             <FormItem>
-                                <FormLabel>Volume</FormLabel>
-                                <FormControl><Input {...field} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                        
                         <DialogFooter>
                             <Button type="submit" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -367,5 +337,3 @@ export default function Watchlist() {
     </Card>
   )
 }
-
-    

@@ -3,6 +3,7 @@
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
+import { getStockData, StockData } from "@/ai/tools/get-stock-data";
 
 // --- Prompt Management ---
 
@@ -66,15 +67,9 @@ export async function savePrompt(id: string, content: string): Promise<void> {
 
 // --- Watchlist Management ---
 
-export interface WatchlistItem {
+export type WatchlistItem = StockData & {
     id: string;
     userId: string;
-    ticker: string;
-    name: string;
-    price: number;
-    change: number;
-    changePercent: number;
-    volume: string;
 }
 
 export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
@@ -88,9 +83,20 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
     return watchlist;
 }
 
-export async function addWatchlistItem(item: Omit<WatchlistItem, 'id'>): Promise<string> {
-    const docRef = await db.collection("watchlist").add(item);
-    return docRef.id;
+export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<WatchlistItem> {
+    const stockData = await getStockData({ ticker: item.ticker });
+    
+    const newWatchlistItem = {
+        ...stockData,
+        userId: item.userId,
+    };
+
+    const docRef = await db.collection("watchlist").add(newWatchlistItem);
+    
+    return {
+        ...newWatchlistItem,
+        id: docRef.id,
+    };
 }
 
 export async function removeWatchlistItem(id: string): Promise<void> {
