@@ -66,7 +66,7 @@ export default function MarketSummary() {
 
 
   return (
-    <Card className="sm:col-span-4">
+    <Card>
       <CardHeader className="pb-4">
         <CardTitle>AI Market Briefing</CardTitle>
         <CardDescription className="text-sm">
