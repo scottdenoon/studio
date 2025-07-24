@@ -29,10 +29,6 @@ interface NewsItemWithAnalysis extends NewsItem {
   loading: boolean;
 }
 
-interface RealtimeNewsFeedProps {
-  onSelectNews: (analysis: AnalyzeNewsSentimentOutput) => void;
-}
-
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
     <div className="flex items-center text-xs text-muted-foreground">
         <Icon className="h-3.5 w-3.5 mr-2 text-accent" />
@@ -51,7 +47,7 @@ const SentimentDisplay = ({ sentiment, impactScore }: { sentiment: string; impac
   return <Badge variant="secondary"><Minus className="mr-1 h-3 w-3" /> Neutral ({impactScore})</Badge>;
 };
 
-export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps) {
+export default function RealtimeNewsFeed() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItemWithAnalysis[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
@@ -70,6 +66,10 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
 
             const itemsWithLoadingState: NewsItemWithAnalysis[] = initialNewsItems.map(item => ({...item, loading: true}));
             setNewsItems(itemsWithLoadingState);
+            
+            if (itemsWithLoadingState.length > 0) {
+              setSelectedItem(itemsWithLoadingState[0].id!);
+            }
 
             const analyzedItems = await Promise.all(itemsWithLoadingState.map(async (item) => {
                 try {
@@ -85,9 +85,6 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
             }));
 
             setNewsItems(analyzedItems);
-            if (analyzedItems.length > 0 && analyzedItems[0].analysis) {
-                handleNewsClick(analyzedItems[0]);
-            }
         } catch (error) {
             console.error("Error fetching news feed:", error);
             toast({
@@ -102,13 +99,6 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
 
     fetchAndAnalyzeNews();
   }, [toast]);
-
-  const handleNewsClick = (news: NewsItemWithAnalysis) => {
-    setSelectedItem(news.headline);
-    if(news.analysis) {
-        onSelectNews(news.analysis);
-    }
-  };
   
   const getTimestamp = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -131,7 +121,7 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
         <ScrollArea className="h-[400px]">
             {loadingFeed ? (
                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                  </div>
             ) : newsItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border border-dashed rounded-lg h-[400px]">
@@ -141,10 +131,10 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {newsItems.map((news, index) => (
-                    <Collapsible key={index} onOpenChange={() => handleNewsClick(news)} className={cn(
+                    {newsItems.map((news) => (
+                    <Collapsible key={news.id} onOpenChange={(isOpen) => setSelectedItem(isOpen ? news.id! : null)} open={selectedItem === news.id} className={cn(
                         "border rounded-lg transition-colors",
-                        selectedItem === news.headline 
+                        selectedItem === news.id 
                             ? "bg-muted border-primary" 
                             : "hover:bg-muted/50"
                     )}>
@@ -162,24 +152,29 @@ export default function RealtimeNewsFeed({ onSelectNews }: RealtimeNewsFeedProps
                         </CollapsibleTrigger>
                         <CollapsibleContent className="p-3 pt-0">
                             <Separator className="mb-3" />
+                            <p className="text-xs italic text-muted-foreground mb-4">{news.content}</p>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
                                 <MomentumIndicator icon={BarChart2} label="Volume" value={news.momentum.volume} />
                                 <MomentumIndicator icon={TrendingUp} label="Relative Volume" value={news.momentum.relativeVolume.toFixed(2)} />
                                 <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
                                 <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
                             </div>
-                            <div className="flex items-center gap-3 p-2 rounded-md bg-background/50 border mb-4 text-sm">
-                            <Bot className="h-5 w-5 text-accent shrink-0"/>
-                                {news.loading && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
-                                {news.error && <div className="flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4"/><span>Analysis Error</span></div>}
-                                {news.analysis && (
-                                    <div className="flex items-center justify-between w-full">
-                                        <span className="font-medium text-foreground/90">Momentum Impact Rating:</span>
-                                        <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
+
+                            <div className="flex flex-col gap-3 p-3 rounded-md bg-background/50 border text-sm">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Bot className="h-5 w-5 text-accent shrink-0"/>
+                                        <h4 className="font-semibold">AI Sentiment Analysis</h4>
                                     </div>
+                                    {news.analysis && <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />}
+                                </div>
+                                {news.loading && <div className="flex items-center gap-2 text-muted-foreground text-xs"><Loader2 className="h-4 w-4 animate-spin"/><span>Analyzing momentum impact...</span></div>}
+                                {news.error && <div className="flex items-center gap-2 text-destructive text-xs"><AlertTriangle className="h-4 w-4"/><span>Analysis Error: {news.error}</span></div>}
+                                {news.analysis && (
+                                    <p className="text-xs text-foreground/80 pl-7">{news.analysis.summary}</p>
                                 )}
                             </div>
-                            <p className="text-xs italic text-muted-foreground">{news.content}</p>
                         </CollapsibleContent>
                     </Collapsible>
                     ))}
