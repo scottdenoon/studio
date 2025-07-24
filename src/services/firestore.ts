@@ -1,7 +1,7 @@
 
 "use server"
 
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebase/server";
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, query, orderBy, where, Timestamp } from "firebase/firestore";
 
 // --- Prompt Management ---
@@ -152,7 +152,7 @@ export interface UserProfile {
 
 export interface NewUserProfile {
     email: string;
-    role: 'admin' | 'basic';
+    role: 'admin' | 'basic' | 'premium';
 }
 
 export async function addUserProfile(uid: string, data: NewUserProfile): Promise<void> {
