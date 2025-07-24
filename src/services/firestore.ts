@@ -116,6 +116,8 @@ export interface NewsItem {
     analysis?: AnalyzeNewsSentimentOutput;
 }
 
+export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
+
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
     const q = newsCol.orderBy("timestamp", "desc");
@@ -140,13 +142,26 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 }
 
 
-export async function addNewsItem(item: Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>): Promise<string> {
+export async function addNewsItem(item: NewsItemCreate): Promise<string> {
     const newItem = {
         ...item,
-        timestamp: Timestamp.now()
+        timestamp: Timestamp.now(),
+        analysis: null, // Ensure analysis is null on creation
     };
     const docRef = await db.collection("news_feed").add(newItem);
     return docRef.id;
+}
+
+export async function updateNewsItem(id: string, item: NewsItemCreate): Promise<void> {
+    const newsItemRef = db.collection('news_feed').doc(id);
+    await newsItemRef.update({
+        ...item,
+        analysis: null, // Reset analysis when item is updated
+    });
+}
+
+export async function deleteNewsItem(id: string): Promise<void> {
+    await db.collection("news_feed").doc(id).delete();
 }
 
 
