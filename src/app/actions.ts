@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getWatchlist, WatchlistItem, getJournalEntries, TradeJournalEntry } from '@/services/firestore';
+import { getWatchlist, getJournalEntries, WatchlistItem, TradeJournalEntry } from '@/services/firestore';
 
 export async function getWatchlistAction(
   userId: string

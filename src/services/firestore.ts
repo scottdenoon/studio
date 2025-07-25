@@ -170,8 +170,7 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const q = newsCol.orderBy("timestamp", "desc");
-    const newsSnapshot = await q.get();
+    const newsSnapshot = await newsCol.orderBy("timestamp", "desc").get();
     
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
