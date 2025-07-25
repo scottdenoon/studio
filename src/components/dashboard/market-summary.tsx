@@ -4,19 +4,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { summarizeMarketTrends, SummarizeMarketTrendsOutput } from '@/ai/flows/summarize-market-trends';
 import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flows/summarize-momentum-trends';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, TrendingUp, AlertTriangle, Zap, SlidersHorizontal } from 'lucide-react';
+import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
-import { getNewsFeed, NewsItem } from '@/services/firestore';
+import { getNewsFeed } from '@/services/firestore';
 
 type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput;
 
-export default function MarketSummary() {
+interface AiBriefingProps {
+    open: boolean;
+}
+
+export default function AiBriefing({ open }: AiBriefingProps) {
   const [summary, setSummary] = useState<SummaryOutput | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summaryType, setSummaryType] = useState('market');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -66,69 +70,66 @@ export default function MarketSummary() {
   }
 
   useEffect(() => {
-    handleSummarize(summaryType);
-    const intervalId = setInterval(() => handleSummarize(summaryType), 3600000); // 1 hour
-
-    return () => clearInterval(intervalId);
-  }, [handleSummarize, summaryType]);
+    // Only fetch summary if the dialog is open and it hasn't been fetched yet.
+    if (open && !summary && !loading) {
+      handleSummarize(summaryType);
+    }
+  }, [open, summary, loading, handleSummarize, summaryType]);
 
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-start justify-between pb-2 space-y-0">
-          <div className="space-y-1">
-            <CardTitle className="text-2xl">AI Market Briefing</CardTitle>
-            <CardDescription className="flex items-center text-sm">
+    <>
+        <DialogHeader>
+            <DialogTitle className="text-2xl">AI Market Briefing</DialogTitle>
+            <DialogDescription>
               AI-powered analysis of market trends and momentum. 
               {lastUpdated && (
                   <span className='ml-2 text-xs text-muted-foreground'>
                       (Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})
                   </span>
               )}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+            </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-md my-4">
             <Button
-                variant={summaryType === 'market' ? 'default' : 'ghost'}
+                variant={summaryType === 'market' ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => handleSummaryTypeChange('market')}
-                className={cn("h-auto px-3 py-1", summaryType === 'market' && 'bg-background text-foreground shadow-sm')}
+                className="flex-1"
             >
                 <TrendingUp className="h-4 w-4 mr-2" />
                 Market
             </Button>
             <Button
-                variant={summaryType === 'momentum' ? 'default' : 'ghost'}
+                variant={summaryType === 'momentum' ? 'secondary' : 'ghost'}
                 size="sm"
                 onClick={() => handleSummaryTypeChange('momentum')}
-                className={cn("h-auto px-3 py-1", summaryType === 'momentum' && 'bg-background text-foreground shadow-sm')}
+                className="flex-1"
             >
                 <Zap className="h-4 w-4 mr-2" />
                 Momentum
             </Button>
-          </div>
-      </CardHeader>
+        </div>
       
-      <CardContent className="pt-2">
-          <Separator className="mb-4" />
+        <div className="pt-2 min-h-[12rem] flex flex-col justify-center">
           {loading && (
-             <div className="flex items-center gap-2 text-muted-foreground min-h-[4rem]">
-                <Loader2 className="h-4 w-4 animate-spin"/>
+             <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin"/>
                 <span>Analyzing market data...</span>
              </div>
           )}
           {summary && !loading && (
-              <div className="space-y-2 text-sm text-foreground/90 min-h-[4rem]">
+              <div className="space-y-2 text-sm text-foreground/90">
                 <p>{summary.summary}</p>
               </div>
           )}
           {error && !loading && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm min-h-[4rem]">
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center justify-center gap-3 text-sm">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <p><span className="font-semibold">Analysis Failed:</span> {error}</p>
               </div>
           )}
-      </CardContent>
-    </Card>
+        </div>
+    </>
   );
 }
