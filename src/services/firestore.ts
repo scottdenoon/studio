@@ -1,17 +1,9 @@
 
-
-
-
-
-
-
-
-
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
-import { fetchStockData, StockData } from "./market-data";
+import { fetchStockData, StockData } from "@/services/market-data";
 import { logActivity } from "./logging";
 
 // --- Prompt Management ---
