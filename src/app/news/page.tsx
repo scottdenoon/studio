@@ -12,16 +12,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Newspaper, Search, Bot, Loader2, TrendingUp, TrendingDown, Minus, ChevronDown, BarChart2, Users, FileText, Wifi, WifiOff } from 'lucide-react';
+import { Newspaper, Search, Bot, Loader2, TrendingUp, TrendingDown, Minus, ChevronDown, BarChart2, Users, FileText, Wifi, WifiOff, List, Rows3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
   const commonClasses = "text-xs";
@@ -55,6 +58,8 @@ export default function NewsPage() {
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState< 'closed' | 'connecting' | 'open'>('closed');
   const [isBriefingOpen, setBriefingOpen] = useState(false);
+  const [view, setView] = useState<'detailed' | 'compact'>('detailed');
+
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -134,10 +139,13 @@ export default function NewsPage() {
       });
   }, [newsItems, tickerFilter, sentimentFilter]);
   
-  const getTimestamp = (dateString: string) => {
+  const getTimestamp = (dateString: string, withDate = false) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (withDate) {
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
   
   if (authLoading || !user) {
@@ -196,6 +204,10 @@ export default function NewsPage() {
                                 <SelectItem value="neutral">Neutral</SelectItem>
                             </SelectContent>
                         </Select>
+                         <ToggleGroup type="single" value={view} onValueChange={(value) => { if (value) setView(value as 'detailed' | 'compact')}} size="sm">
+                            <ToggleGroupItem value="detailed" aria-label="Detailed view"><Rows3 /></ToggleGroupItem>
+                            <ToggleGroupItem value="compact" aria-label="Compact view"><List /></ToggleGroupItem>
+                        </ToggleGroup>
                         <div className="flex items-center text-sm text-muted-foreground gap-2">
                             {wsStatus === 'connecting' && <><Loader2 className="h-4 w-4 animate-spin" /><span>Connecting...</span></>}
                             {wsStatus === 'open' && <><Wifi className="h-4 w-4 text-green-500" /><span>Live</span></>}
@@ -206,7 +218,7 @@ export default function NewsPage() {
                 <CardContent>
                     <ScrollArea className="h-[65vh]">
                         {loading ? (
-                             <div className="space-y-2">
+                             <div className="space-y-2 pr-4">
                                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                              </div>
                         ) : filteredNews.length === 0 ? (
@@ -220,8 +232,8 @@ export default function NewsPage() {
                                     }
                                 </p>
                             </div>
-                        ) : (
-                             <div className="space-y-3">
+                        ) : view === 'detailed' ? (
+                             <div className="space-y-3 pr-4">
                                 {filteredNews.map((news) => (
                                     <Collapsible key={news.id} onOpenChange={(isOpen) => setOpenItemId(isOpen ? news.id! : null)} open={openItemId === news.id} className={cn(
                                         "border rounded-lg transition-colors",
@@ -280,6 +292,36 @@ export default function NewsPage() {
                                     </Collapsible>
                                 ))}
                             </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-[90px]">Time</TableHead>
+                                        <TableHead className="w-[80px]">Ticker</TableHead>
+                                        <TableHead>Headline</TableHead>
+                                        <TableHead className="w-[150px]">AI Sentiment</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredNews.map(news => (
+                                        <TableRow key={news.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setOpenItemId(openItemId === news.id ? null : news.id!)}>
+                                            <TableCell className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</TableCell>
+                                            <TableCell><Badge variant="outline">{news.ticker}</TableCell></TableCell>
+                                            <TableCell className="font-medium text-sm">{news.headline}</TableCell>
+                                            <TableCell>
+                                                {news.analysis ? (
+                                                     <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} showText />
+                                                ) : (
+                                                    <div className="flex items-center text-xs text-muted-foreground">
+                                                        <Loader2 className="h-3 w-3 animate-spin mr-1"/>
+                                                        <span>Analyzing...</span>
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
                         )}
                     </ScrollArea>
                 </CardContent>
@@ -294,3 +336,5 @@ export default function NewsPage() {
     </div>
   );
 }
+
+    
