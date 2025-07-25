@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import ScannerCard from '@/components/scanners/scanner-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { SlidersHorizontal } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import AiBriefing from '@/components/dashboard/market-summary';
 
 export default function ScannersPage() {
   const { user, loading: authLoading } = useAuth();
@@ -21,6 +23,7 @@ export default function ScannersPage() {
   const [scanners, setScanners] = useState<Scanner[]>([]);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isBriefingOpen, setBriefingOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -57,7 +60,7 @@ export default function ScannersPage() {
   if (authLoading || loading || !user) {
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
-            <Sidebar />
+            <Sidebar onBriefingClick={() => setBriefingOpen(true)} />
             <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
                 <Header />
                 <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -74,7 +77,7 @@ export default function ScannersPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <Sidebar />
+      <Sidebar onBriefingClick={() => setBriefingOpen(true)} />
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <Header />
         <main className="flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -100,6 +103,11 @@ export default function ScannersPage() {
             )}
         </main>
       </div>
+      <Dialog open={isBriefingOpen} onOpenChange={setBriefingOpen}>
+        <DialogContent>
+          <AiBriefing open={isBriefingOpen} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -20,6 +20,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import AiBriefing from '@/components/dashboard/market-summary';
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
   const commonClasses = "text-xs";
@@ -52,6 +54,7 @@ export default function NewsPage() {
   const [sentimentFilter, setSentimentFilter] = useState("all");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState< 'closed' | 'connecting' | 'open'>('closed');
+  const [isBriefingOpen, setBriefingOpen] = useState(false);
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -141,7 +144,7 @@ export default function NewsPage() {
     // Show a skeleton loader while auth state is resolving
     return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <Sidebar />
+        <Sidebar onBriefingClick={() => setBriefingOpen(true)} />
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
           <Header />
           <main className="flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -161,7 +164,7 @@ export default function NewsPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-      <Sidebar />
+      <Sidebar onBriefingClick={() => setBriefingOpen(true)} />
       <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
         <Header />
         <main className="flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
@@ -283,6 +286,11 @@ export default function NewsPage() {
             </Card>
         </main>
       </div>
+      <Dialog open={isBriefingOpen} onOpenChange={setBriefingOpen}>
+        <DialogContent>
+          <AiBriefing open={isBriefingOpen} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
