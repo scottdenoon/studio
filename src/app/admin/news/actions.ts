@@ -25,8 +25,7 @@ export interface NewsSource {
 
 export async function getNewsSources(): Promise<NewsSource[]> {
     const newsSourceCol = db.collection('news_sources');
-    const q = newsSourceCol.orderBy("createdAt", "desc");
-    const snapshot = await q.get();
+    const snapshot = await newsSourceCol.get();
     const newsSources: NewsSource[] = [];
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -36,6 +35,7 @@ export async function getNewsSources(): Promise<NewsSource[]> {
             createdAt: data.createdAt.toDate().toISOString(),
         } as NewsSource);
     });
+    newsSources.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return newsSources;
 }
 

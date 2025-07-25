@@ -17,7 +17,7 @@ export async function getPrompts(): Promise<Record<string, string>> {
     promptSnapshot.forEach(doc => {
         prompts[doc.id] = doc.data().content;
     });
-    // Add default prompts if they don't exist
+
     const defaultPrompts = {
         "analyzeNewsSentimentPrompt": `You are an AI-powered financial news analyst.
 
@@ -42,7 +42,7 @@ export async function getPrompts(): Promise<Record<string, string>> {
     let createdDefaults = false;
     for (const [id, content] of Object.entries(defaultPrompts)) {
         if (!prompts[id]) {
-            await savePrompt(id, content);
+            await db.collection("prompts").doc(id).set({ content });
             prompts[id] = content;
             createdDefaults = true;
         }
@@ -61,6 +61,26 @@ export async function getPrompt(id: string): Promise<string> {
     if (docSnap.exists) {
         return docSnap.data()!.content;
     }
+    // Return a default if not found to avoid crashing flows
+    if (id === 'analyzeNewsSentimentPrompt') return `You are an AI-powered financial news analyst.
+
+  Analyze the following news article to determine its sentiment and potential impact on the stock price.
+  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
+
+  Ticker: {{{ticker}}}
+  Headline: {{{headline}}}
+  Content: {{{content}}}`;
+    if (id === 'summarizeMarketTrendsPrompt') return `You are an AI assistant that summarizes market conditions and trends.
+
+  Summarize the market conditions and trends based on the following news feed:
+
+  {{{newsFeed}}}`;
+    if (id === 'summarizeMomentumTrendsPrompt') return `You are an AI assistant that summarizes market momentum.
+
+  Focus on identifying stocks with high relative volume, significant price changes, and breaking news. Highlight key movers and the reasons for their momentum based on the following news feed:
+
+  {{{newsFeed}}}`;
+    
     throw new Error(`Prompt with id "${id}" not found!`);
 }
 
@@ -262,7 +282,7 @@ export async function addUserProfile(data: NewUserProfile): Promise<UserProfile>
         userProfileData = { ...existingData, ...updateData } as Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
     } else {
         const usersCol = db.collection('users');
-        const userSnapshot = await usersCol.orderBy("createdAt", "desc").limit(1).get();
+        const userSnapshot = await usersCol.get();
         const isFirstUser = userSnapshot.empty;
         const role = isFirstUser ? 'admin' : 'basic';
 
@@ -309,7 +329,7 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
 
 export async function getUsers(): Promise<UserProfile[]> {
     const usersCol = db.collection('users');
-    const userSnapshot = await usersCol.orderBy("createdAt", "desc").get();
+    const userSnapshot = await usersCol.get();
     const users: UserProfile[] = [];
     userSnapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -322,6 +342,7 @@ export async function getUsers(): Promise<UserProfile[]> {
             lastSeen: data.lastSeen.toDate().toISOString(),
         });
     });
+    users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return users;
 }
 
@@ -392,8 +413,7 @@ export interface Scanner {
 
 export async function getScanners(): Promise<Scanner[]> {
     const scannerCol = db.collection('scanners');
-    const q = scannerCol.orderBy("createdAt", "desc");
-    const scannerSnapshot = await q.get();
+    const scannerSnapshot = await scannerCol.get();
     const scanners: Scanner[] = [];
     scannerSnapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -403,6 +423,7 @@ export async function getScanners(): Promise<Scanner[]> {
             createdAt: data.createdAt.toDate().toISOString(),
         } as Scanner);
     });
+    scanners.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
     return scanners;
 }
 
@@ -432,8 +453,7 @@ export interface DataSource {
 
 export async function getDataSources(): Promise<DataSource[]> {
     const dataSourceCol = db.collection('data_sources');
-    const q = dataSourceCol.orderBy("createdAt", "desc");
-    const snapshot = await q.get();
+    const snapshot = await dataSourceCol.get();
     const dataSources: DataSource[] = [];
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -443,6 +463,7 @@ export async function getDataSources(): Promise<DataSource[]> {
             createdAt: data.createdAt.toDate().toISOString(),
         } as DataSource);
     });
+    dataSources.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return dataSources;
 }
 
@@ -541,7 +562,7 @@ export type TradeJournalEntryCreate = Omit<TradeJournalEntry, 'id' | 'createdAt'
 
 export async function getJournalEntries(userId: string): Promise<TradeJournalEntry[]> {
     const journalCol = db.collection('trade_journal');
-    const q = journalCol.where('userId', '==', userId).orderBy("entryDate", "desc");
+    const q = journalCol.where('userId', '==', userId);
     const snapshot = await q.get();
     const entries: TradeJournalEntry[] = [];
     snapshot.forEach(docSnap => {
@@ -561,6 +582,7 @@ export async function getJournalEntries(userId: string): Promise<TradeJournalEnt
         };
         entries.push(plainObject);
     });
+    entries.sort((a,b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
     return entries;
 }
 
