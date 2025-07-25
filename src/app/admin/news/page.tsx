@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, CheckCircle, Rss, Info, PlusCircle, Trash2, Key, Clock } from "lucide-react"
+import { Loader2, Edit, CheckCircle, Rss, Info, PlusCircle, Trash2, Key, Clock, Filter } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -58,6 +58,8 @@ const fieldMappingSchema = z.object({
   sourceField: z.string().min(1, "Required"),
 });
 
+const keywordSchema = z.object({ value: z.string().min(1, "Keyword cannot be empty") });
+
 const newsSourceSchema = z.object({
   name: z.string().min(3, "Name is required"),
   type: z.enum(["API", "WebSocket"]),
@@ -65,7 +67,11 @@ const newsSourceSchema = z.object({
   isActive: z.boolean().default(true),
   apiKeyEnvVar: z.string().optional(),
   fieldMapping: z.array(fieldMappingSchema).optional(),
-  frequency: z.coerce.number().min(1, "Frequncy must be at least 1").optional(),
+  frequency: z.coerce.number().min(1, "Frequency must be at least 1").optional(),
+  filters: z.object({
+    includeKeywords: z.array(keywordSchema).optional(),
+    excludeKeywords: z.array(keywordSchema).optional(),
+  }).optional(),
 })
 
 type NewsSourceFormValues = z.infer<typeof newsSourceSchema>
@@ -75,6 +81,33 @@ const dbFields = [
   "momentum.volume", "momentum.relativeVolume", "momentum.float",
   "momentum.shortInterest", "momentum.priceAction"
 ];
+
+const KeywordArrayInput = ({ name, control, label }: { name: "filters.includeKeywords" | "filters.excludeKeywords", control: any, label: string }) => {
+    const { fields, append, remove } = useFieldArray({ control, name });
+
+    return (
+        <div className="space-y-2">
+            <label className="text-sm font-medium">{label}</label>
+            {fields.map((field, index) => (
+                <div key={field.id} className="flex items-center gap-2">
+                    <FormField
+                        control={control}
+                        name={`${name}.${index}.value`}
+                        render={({ field }) => (
+                            <Input {...field} placeholder="Enter keyword..." />
+                        )}
+                    />
+                    <Button type="button" size="icon" variant="ghost" onClick={() => remove(index)}>
+                        <Trash2 className="h-4 w-4 text-destructive"/>
+                    </Button>
+                </div>
+            ))}
+            <Button type="button" size="sm" variant="outline" onClick={() => append({ value: "" })}>
+                <PlusCircle className="h-4 w-4 mr-2" /> Add
+            </Button>
+        </div>
+    );
+}
 
 export default function NewsSourceManagementPage() {
   const [loading, setLoading] = useState(false)
@@ -94,6 +127,7 @@ export default function NewsSourceManagementPage() {
       apiKeyEnvVar: "",
       fieldMapping: [],
       frequency: 5,
+      filters: { includeKeywords: [], excludeKeywords: [] },
     },
   })
   
@@ -128,7 +162,7 @@ export default function NewsSourceManagementPage() {
       const result = await fetchNewsFromSources();
       toast({
         title: "News Ingestion Complete",
-        description: `Successfully fetched and processed ${result.importedCount} new articles.`
+        description: `Imported ${result.importedCount} new articles. Filtered out ${result.filteredCount}.`
       })
     } catch (error) {
       console.error("Error fetching news from sources:", error);
@@ -160,7 +194,11 @@ export default function NewsSourceManagementPage() {
     setEditingId(source.id!)
     form.reset({
       ...source,
-      fieldMapping: source.fieldMapping || []
+      fieldMapping: source.fieldMapping || [],
+      filters: {
+        includeKeywords: source.filters?.includeKeywords?.map(v => ({value: v})) || [],
+        excludeKeywords: source.filters?.excludeKeywords?.map(v => ({value: v})) || []
+      }
     })
   }
 
@@ -174,20 +212,31 @@ export default function NewsSourceManagementPage() {
       apiKeyEnvVar: "",
       fieldMapping: [],
       frequency: 5,
+      filters: { includeKeywords: [], excludeKeywords: [] },
     })
   }
 
   const onSubmit = async (data: NewsSourceFormValues) => {
     setLoading(true)
+    
+    // Transform filters from {value: string}[] to string[] before saving
+    const dataToSave = {
+        ...data,
+        filters: {
+            includeKeywords: data.filters?.includeKeywords?.map(k => k.value),
+            excludeKeywords: data.filters?.excludeKeywords?.map(k => k.value)
+        }
+    };
+
     try {
       if (editingId) {
-        await updateNewsSource(editingId, data)
+        await updateNewsSource(editingId, dataToSave)
         toast({
           title: "News Source Updated",
           description: "The news source has been successfully updated.",
         })
       } else {
-        await addNewsSource(data)
+        await addNewsSource(dataToSave)
         toast({
           title: "News Source Added",
           description: "The new news source has been added.",
@@ -306,6 +355,18 @@ export default function NewsSourceManagementPage() {
                     </CardContent>
                 </Card>
 
+                <Card>
+                    <CardHeader className="pb-2">
+                         <CardTitle className="text-base">Content Filters (Optional)</CardTitle>
+                         <CardDescription className="text-xs">Filter articles by keywords before they are saved.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 p-4">
+                        <KeywordArrayInput name="filters.includeKeywords" control={form.control} label="Include if keyword exists" />
+                        <KeywordArrayInput name="filters.excludeKeywords" control={form.control} label="Exclude if keyword exists" />
+                    </CardContent>
+                </Card>
+
+
                 <FormField control={form.control} name="isActive" render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
@@ -384,6 +445,7 @@ export default function NewsSourceManagementPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Filters</TableHead>
                   <TableHead>Mappings</TableHead>
                   <TableHead>Freq (min)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -398,6 +460,7 @@ export default function NewsSourceManagementPage() {
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                     </TableRow>
                   ))
@@ -410,6 +473,12 @@ export default function NewsSourceManagementPage() {
                         <Badge variant={source.isActive ? "default" : "destructive"}>
                           {source.isActive ? "Active" : "Inactive"}
                         </Badge>
+                      </TableCell>
+                       <TableCell>
+                          <Badge variant="outline" className="flex items-center gap-1.5">
+                            <Filter className="h-3 w-3" />
+                            {(source.filters?.includeKeywords?.length || 0) + (source.filters?.excludeKeywords?.length || 0)}
+                          </Badge>
                       </TableCell>
                        <TableCell>
                           <Badge variant="outline" className="flex items-center gap-1.5">
@@ -439,7 +508,7 @@ export default function NewsSourceManagementPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
+                    <TableCell colSpan={7} className="h-24 text-center">
                       No news sources configured yet.
                     </TableCell>
                   </TableRow>

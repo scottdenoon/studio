@@ -12,6 +12,12 @@ export interface FieldMapping {
     dbField: string;
     sourceField: string;
 }
+
+export interface NewsSourceFilters {
+    includeKeywords?: string[];
+    excludeKeywords?: string[];
+}
+
 export interface NewsSource {
   id?: string;
   name: string;
@@ -22,6 +28,7 @@ export interface NewsSource {
   apiKeyEnvVar?: string;
   fieldMapping?: FieldMapping[];
   frequency?: number;
+  filters?: NewsSourceFilters;
 }
 
 export async function getNewsSources(): Promise<NewsSource[]> {
@@ -63,11 +70,38 @@ export async function deleteNewsSource(id: string): Promise<void> {
     await logActivity("INFO", `News source "${name}" deleted.`, { id });
 }
 
+function applyFilters(articles: any[], filters?: NewsSourceFilters): any[] {
+    if (!filters) {
+        return articles;
+    }
 
-export async function fetchNewsFromSources(): Promise<{ importedCount: number }> {
+    return articles.filter(article => {
+        const articleText = `${article.headline} ${article.content}`.toLowerCase();
+
+        // Exclude if any exclude keyword is found
+        if (filters.excludeKeywords && filters.excludeKeywords.length > 0) {
+            if (filters.excludeKeywords.some(keyword => articleText.includes(keyword.toLowerCase()))) {
+                return false;
+            }
+        }
+
+        // Include if no include keywords are specified, or if at least one is found
+        if (filters.includeKeywords && filters.includeKeywords.length > 0) {
+            if (!filters.includeKeywords.some(keyword => articleText.includes(keyword.toLowerCase()))) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+}
+
+
+export async function fetchNewsFromSources(): Promise<{ importedCount: number, filteredCount: number }> {
     const sources = await getNewsSources();
     const activeSources = sources.filter(s => s.isActive && s.type === 'API');
     let totalImportedCount = 0;
+    let totalFilteredCount = 0;
 
     for (const source of activeSources) {
         try {
@@ -112,9 +146,18 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                  await logActivity("WARN", `AI could not parse any articles from source: ${source.name}`);
                  continue;
             }
+            
+            // Apply content filters
+            const filteredArticles = applyFilters(articles, source.filters);
+            const filteredOutCount = articles.length - filteredArticles.length;
+            if (filteredOutCount > 0) {
+                await logActivity("INFO", `Filtered out ${filteredOutCount} articles from source: ${source.name}`, { source: source.name });
+                totalFilteredCount += filteredOutCount;
+            }
+
 
             const analysisPromises: Promise<void>[] = [];
-            for (const article of articles) {
+            for (const article of filteredArticles) {
                 const newsItemId = await addNewsItem({
                     ticker: article.ticker,
                     headline: article.headline,
@@ -139,7 +182,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
             
             // Wait for all analysis tasks for the current source to complete
             await Promise.all(analysisPromises);
-            await logActivity("INFO", `Processed ${articles.length} articles from source: ${source.name}`, { source: source.name, count: articles.length });
+            await logActivity("INFO", `Processed ${filteredArticles.length} articles from source: ${source.name}`, { source: source.name, count: filteredArticles.length });
 
         } catch (error) {
             console.error(`Error processing source ${source.name}:`, error);
@@ -147,9 +190,9 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
         }
     }
 
-    if (totalImportedCount > 0) {
-        await logActivity("INFO", `Completed news ingestion cycle. Total imported: ${totalImportedCount}.`);
+    if (totalImportedCount > 0 || totalFilteredCount > 0) {
+        await logActivity("INFO", `Completed news ingestion cycle. Total imported: ${totalImportedCount}. Total filtered: ${totalFilteredCount}.`);
     }
 
-    return { importedCount: totalImportedCount };
+    return { importedCount: totalImportedCount, filteredCount: totalFilteredCount };
 }
