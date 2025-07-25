@@ -154,6 +154,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
+    // Sort by timestamp descending in code to avoid indexing issues
     return newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
