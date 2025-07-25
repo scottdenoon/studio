@@ -306,7 +306,7 @@ export default function NewsPage() {
                                     {filteredNews.map(news => (
                                         <TableRow key={news.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setOpenItemId(openItemId === news.id ? null : news.id!)}>
                                             <TableCell className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</TableCell>
-                                            <TableCell><Badge variant="outline">{news.ticker}</TableCell></TableCell>
+                                            <TableCell><Badge variant="outline">{news.ticker}</Badge></TableCell>
                                             <TableCell className="font-medium text-sm">{news.headline}</TableCell>
                                             <TableCell>
                                                 {news.analysis ? (
