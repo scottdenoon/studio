@@ -1,4 +1,5 @@
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -158,7 +159,8 @@ export async function getWatchlist(
 
   const watchlist: WatchlistItem[] = [];
   settledPromises.forEach((result) => {
-    if (result.status === 'fulfilled' && result.value) {
+    // Check for fulfilled status and ensure the stock data is not a zeroed-out error object
+    if (result.status === 'fulfilled' && result.value && result.value.price > 0) {
       watchlist.push(result.value);
     } else if (result.status === 'rejected') {
       console.error('Failed to fetch watchlist item data:', result.reason);
@@ -236,6 +238,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
+    // Sort in-memory instead of in the query
     newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     return newsFeed;

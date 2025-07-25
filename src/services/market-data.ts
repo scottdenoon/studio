@@ -8,11 +8,13 @@ export type StockData = z.infer<typeof StockDataSchema>;
 
 export async function fetchStockData({ ticker }: { ticker: string }): Promise<StockData> {
     const apiKey = process.env.POLYGON_API_KEY;
-    if (!apiKey) {
-        throw new Error('POLYGON_API_KEY is not configured in the environment.');
-    }
 
+    // Wrap the entire function in a try-catch to handle any potential errors gracefully.
     try {
+        if (!apiKey) {
+            throw new Error('POLYGON_API_KEY is not configured in the environment.');
+        }
+
         // Fetch company details and previous day's close in parallel
         const [detailsResponse, prevDayResponse] = await Promise.all([
             fetch(`https://api.polygon.io/v3/reference/tickers/${ticker}?apiKey=${apiKey}`),
@@ -67,7 +69,7 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
 
     } catch (error) {
         console.error(`[fetchStockData Service Error] for ${ticker}:`, error);
-        // Return zeroed data on unexpected errors
+        // Return zeroed data on unexpected errors to prevent server component crashes
         return {
             ticker: ticker,
             name: 'Error Fetching Data',
