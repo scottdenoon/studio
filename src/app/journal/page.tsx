@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,6 +19,7 @@ import {
   TradeJournalEntryCreate
 } from '@/services/firestore';
 import { getJournalEntriesAction } from '@/app/actions';
+import { summarizeJournalTrades } from '@/ai/flows/summarize-journal-trades';
 
 
 import { useToast } from '@/hooks/use-toast';
@@ -32,7 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookText, PlusCircle, Calendar as CalendarIcon, MoreVertical, Edit, Trash2, Image as ImageIcon, X } from 'lucide-react';
+import { BookText, PlusCircle, Calendar as CalendarIcon, MoreVertical, Edit, Trash2, Image as ImageIcon, X, Bot, TrendingUp, TrendingDown, Percent, Sigma, Trophy, AlertTriangle, Loader2, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -73,6 +74,10 @@ export default function JournalPage() {
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TradeJournalEntry | null>(null);
   const [isBriefingOpen, setBriefingOpen] = useState(false);
+  const [isSummaryOpen, setSummaryOpen] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
 
   const form = useForm<JournalFormValues>({
     resolver: zodResolver(journalEntrySchema),
@@ -174,12 +179,45 @@ export default function JournalPage() {
       toast({ variant: "destructive", title: "Error", description: "Could not delete the trade entry." });
     }
   };
+
+  const handleGetSummary = async () => {
+    setSummaryOpen(true);
+    setLoadingSummary(true);
+    setSummary('');
+    try {
+        const result = await summarizeJournalTrades({ trades: entries });
+        setSummary(result.summary);
+    } catch(e) {
+        toast({ variant: 'destructive', title: "Error", description: "Could not generate AI summary."});
+    } finally {
+        setLoadingSummary(false);
+    }
+  }
   
   const calculateProfitLoss = (entry: TradeJournalEntry) => {
     const pnl = (entry.exitPrice - entry.entryPrice) * entry.quantity;
     const percentage = ((entry.exitPrice - entry.entryPrice) / entry.entryPrice) * 100;
     return { pnl, percentage };
-  }
+  };
+
+  const journalMetrics = useMemo(() => {
+    const trades = entries.map(calculateProfitLoss);
+    const totalTrades = entries.length;
+    if (totalTrades === 0) {
+      return { totalPnl: 0, winRate: 0, avgGain: 0, avgLoss: 0, totalTrades: 0 };
+    }
+
+    const winningTrades = trades.filter(t => t.pnl > 0);
+    const losingTrades = trades.filter(t => t.pnl < 0);
+    const totalPnl = trades.reduce((sum, t) => sum + t.pnl, 0);
+    const winRate = (winningTrades.length / totalTrades) * 100;
+    const totalGain = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
+    const totalLoss = losingTrades.reduce((sum, t) => sum + t.pnl, 0);
+    const avgGain = winningTrades.length > 0 ? totalGain / winningTrades.length : 0;
+    const avgLoss = losingTrades.length > 0 ? totalLoss / losingTrades.length : 0;
+    
+    return { totalPnl, winRate, avgGain, avgLoss, totalTrades };
+  }, [entries]);
 
   if (authLoading || !user) {
     return (
@@ -206,10 +244,60 @@ export default function JournalPage() {
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Trade Journal</h1>
               <p className="text-muted-foreground">Log and review your trading activity to improve performance.</p>
             </div>
-            <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add New Trade
-            </Button>
+             <div className="flex items-center gap-2">
+                <Button onClick={handleGetSummary} variant="outline" disabled={entries.length === 0}>
+                    <Star className="mr-2 h-4 w-4 text-yellow-500" /> AI Summary (Premium)
+                </Button>
+                <Button onClick={() => handleOpenDialog()}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Trade
+                </Button>
+            </div>
           </div>
+          
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+                        <Trophy className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-bold ${journalMetrics.totalPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                           {journalMetrics.totalPnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{journalMetrics.winRate.toFixed(1)}%</div>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Avg. Gain / Loss</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold flex items-center gap-2">
+                            <span className="text-green-600">{journalMetrics.avgGain.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                            <span className="text-red-600">{Math.abs(journalMetrics.avgLoss).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+                        <Sigma className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{journalMetrics.totalTrades}</div>
+                    </CardContent>
+                </Card>
+           </div>
+
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -368,6 +456,28 @@ export default function JournalPage() {
           <AiBriefing open={isBriefingOpen} />
         </DialogContent>
       </Dialog>
+       <Dialog open={isSummaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><Bot className="h-6 w-6" /> AI Trade Summary</DialogTitle>
+                <DialogDescription>
+                    An AI-powered analysis of your recent trading performance.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="pt-2 min-h-[12rem] flex flex-col justify-center">
+            {loadingSummary ? (
+                <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin"/>
+                    <span>Analyzing your trades...</span>
+                </div>
+            ) : (
+                <div className="space-y-2 text-sm text-foreground/90 whitespace-pre-wrap">
+                    {summary}
+                </div>
+            )}
+            </div>
+        </DialogContent>
+       </Dialog>
     </div>
   );
 }
