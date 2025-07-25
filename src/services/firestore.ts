@@ -1,5 +1,6 @@
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -308,6 +309,7 @@ export interface UserProfile {
     createdAt: string; 
     lastSeen: string;
     photoURL?: string;
+    stripeCustomerId?: string;
 }
 
 export interface NewUserProfile {
@@ -358,6 +360,19 @@ export async function addUserProfile(data: NewUserProfile): Promise<UserProfile>
     };
 }
 
+export async function updateUserRole(stripeCustomerId: string, role: 'premium' | 'basic'): Promise<void> {
+    const usersRef = db.collection('users');
+    const q = usersRef.where('stripeCustomerId', '==', stripeCustomerId).limit(1);
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+        throw new Error(`No user found with Stripe customer ID: ${stripeCustomerId}`);
+    }
+
+    const userDoc = snapshot.docs[0];
+    await userDoc.ref.update({ role });
+    await logActivity("INFO", `User role updated to ${role} for Stripe customer ${stripeCustomerId}`);
+}
 
 export async function getUser(uid: string): Promise<UserProfile | null> {
     const docRef = db.collection("users").doc(uid);
@@ -375,6 +390,7 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
         photoURL: data.photoURL,
         createdAt: data.createdAt.toDate().toISOString(),
         lastSeen: data.lastSeen.toDate().toISOString(),
+        stripeCustomerId: data.stripeCustomerId,
     };
     return plainObject;
 }

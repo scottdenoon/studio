@@ -14,9 +14,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { SlidersHorizontal } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
+import PromoBanner from '@/components/premium/promo-banner';
 
 export default function ScannersPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -57,6 +58,8 @@ export default function ScannersPage() {
     }
   }, [user, toast]);
   
+  const isPremiumUser = userProfile?.role === 'premium';
+
   if (authLoading || loading || !user) {
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -85,6 +88,8 @@ export default function ScannersPage() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Market Scanners</h1>
                 <p className="text-muted-foreground">Real-time scans based on custom criteria to find market movers.</p>
             </div>
+
+            {!isPremiumUser && <div className="mb-6"><PromoBanner /></div>}
             
             {scanners.length === 0 ? (
                 <Alert>

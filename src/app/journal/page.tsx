@@ -52,6 +52,7 @@ import AiBriefing from '@/components/dashboard/market-summary';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import PromoBanner from '@/components/premium/promo-banner';
 
 const journalEntrySchema = z.object({
   ticker: z.string().min(1, "Ticker is required").toUpperCase(),
@@ -67,7 +68,7 @@ const journalEntrySchema = z.object({
 type JournalFormValues = z.infer<typeof journalEntrySchema>;
 
 export default function JournalPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -184,7 +185,17 @@ export default function JournalPage() {
     }
   };
 
+  const isPremiumUser = userProfile?.role === 'premium';
+
   const handleGetSummary = async () => {
+    if (!isPremiumUser) {
+        toast({
+            variant: "destructive",
+            title: "Premium Feature",
+            description: "AI Trade Summary is a premium feature. Please upgrade to use it."
+        });
+        return;
+    }
     setSummaryOpen(true);
     setLoadingSummary(true);
     setSummary('');
@@ -305,7 +316,8 @@ export default function JournalPage() {
                     </CardContent>
                 </Card>
            </div>
-
+           
+           {!isPremiumUser && <div className="mb-6"><PromoBanner /></div>}
 
           {loading ? (
             <Skeleton className="h-80 w-full" />
