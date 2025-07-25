@@ -219,7 +219,8 @@ export interface NewsItem {
     ticker: string;
     headline: string;
     content: string;
-    timestamp: string;
+    timestamp: string; // Ingestion timestamp
+    publishedDate: string; // Original article publication date
     momentum: {
         volume: string;
         relativeVolume: number;
@@ -240,6 +241,8 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
         const timestamp = data.timestamp.toDate().toISOString();
+        const publishedDate = data.publishedDate ? (typeof data.publishedDate.toDate === 'function' ? data.publishedDate.toDate().toISOString() : data.publishedDate) : timestamp;
+
 
         const plainObject: NewsItem = {
             id: docSnap.id,
@@ -248,6 +251,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
             content: data.content,
             momentum: data.momentum,
             timestamp: timestamp,
+            publishedDate: publishedDate,
             analysis: data.analysis,
         };
         newsFeed.push(plainObject);
@@ -257,10 +261,11 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 }
 
 
-export async function addNewsItem(item: NewsItemCreate): Promise<string> {
+export async function addNewsItem(item: Omit<NewsItemCreate, 'publishedDate'> & { publishedDate: string }): Promise<string> {
     const newItem = {
         ...item,
         timestamp: Timestamp.now(),
+        publishedDate: Timestamp.fromDate(new Date(item.publishedDate)),
         analysis: null, // Ensure analysis is null on creation
     };
     const docRef = await db.collection("news_feed").add(newItem);
@@ -664,4 +669,47 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     const { userId, ticker } = doc.data()!;
     await docRef.delete();
     await logActivity("INFO", `User ${userId} deleted journal entry for ${ticker}.`, { id });
+}
+
+
+// --- Market Data Configuration ---
+export interface MarketDataField {
+    id: keyof (z.infer<typeof StockDataSchema> & NewsItem['momentum']);
+    label: string;
+    description: string;
+    defaultEnabled: boolean;
+}
+
+export const marketDataFields: MarketDataField[] = [
+    { id: 'price', label: 'Price', description: 'Latest closing price.', defaultEnabled: true },
+    { id: 'change', label: 'Change ($)', description: 'Price change from previous day.', defaultEnabled: true },
+    { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.', defaultEnabled: true },
+    { id: 'volume', label: 'Volume', description: 'Trading volume for the day.', defaultEnabled: true },
+    { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.', defaultEnabled: true },
+    { id: 'float', label: 'Float', description: 'Shares available for trading.', defaultEnabled: false },
+    { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.', defaultEnabled: false },
+    { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.', defaultEnabled: false },
+];
+
+
+export async function getMarketDataConfig(): Promise<Record<string, boolean>> {
+    const docRef = db.collection('app_config').doc('market_data');
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+        return docSnap.data() as Record<string, boolean>;
+    } else {
+        // Return default config if it doesn't exist
+        const defaultConfig = marketDataFields.reduce((acc, field) => {
+            acc[field.id] = field.defaultEnabled;
+            return acc;
+        }, {} as Record<string, boolean>);
+        await docRef.set(defaultConfig);
+        return defaultConfig;
+    }
+}
+
+export async function updateMarketDataConfig(config: Record<string, boolean>): Promise<void> {
+    const docRef = db.collection('app_config').doc('market_data');
+    await docRef.set(config, { merge: true });
+    await logActivity("INFO", "Market data display configuration updated.");
 }

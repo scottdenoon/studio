@@ -63,6 +63,22 @@ export default function AdminPage() {
              </Button>
           </CardContent>
         </Card>
+         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-5 w-5" />
+                Market Data Config
+            </CardTitle>
+            <CardDescription>
+                Configure which market data points appear on news cards.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+                <Link href="/admin/market-data-config">Configure Data</Link>
+            </Button>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -17,9 +17,10 @@ import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { getNewsFeed, NewsItem } from "@/services/firestore";
+import { getNewsFeed, NewsItem, getMarketDataConfig, MarketDataField, marketDataFields } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
+import { fetchStockData } from "@/services/market-data";
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
     <div className="flex items-center text-xs text-muted-foreground">
@@ -44,32 +45,49 @@ export default function RealtimeNewsFeed() {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
+  const [marketDataConfig, setMarketDataConfig] = useState<Record<string, boolean>>({});
+  const [liveData, setLiveData] = useState<Record<string, any>>({});
+  const [loadingLiveData, setLoadingLiveData] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchNews = async () => {
-        setLoadingFeed(true);
-        try {
-            const initialNewsItems = await getNewsFeed();
-            setNewsItems(initialNewsItems);
-            if (initialNewsItems.length > 0) {
-              setSelectedItem(initialNewsItems[0].id!);
-            }
-        } catch (error) {
-            console.error("Error fetching news feed:", error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Could not load the news feed from the database.",
-            })
-        } finally {
-            setLoadingFeed(false);
+  const fetchInitialData = useCallback(async () => {
+    setLoadingFeed(true);
+    try {
+        const [initialNewsItems, config] = await Promise.all([
+            getNewsFeed(),
+            getMarketDataConfig()
+        ]);
+        setNewsItems(initialNewsItems);
+        setMarketDataConfig(config);
+        if (initialNewsItems.length > 0) {
+          setSelectedItem(initialNewsItems[0].id!);
+          handleToggleItem(true, initialNewsItems[0].ticker);
         }
-    };
-
-    fetchNews();
+    } catch (error) {
+        console.error("Error fetching news feed:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load the news feed from the database.",
+        })
+    } finally {
+        setLoadingFeed(false);
+    }
   }, [toast]);
+
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
   
+  const handleToggleItem = async (isOpen: boolean, ticker: string) => {
+    if (isOpen && !liveData[ticker]) {
+      setLoadingLiveData(true);
+      const data = await fetchStockData({ ticker });
+      setLiveData(prev => ({...prev, [ticker]: data}));
+      setLoadingLiveData(false);
+    }
+  };
 
   const getTimestamp = (dateString: string) => {
     if (!dateString) return '';
@@ -104,7 +122,10 @@ export default function RealtimeNewsFeed() {
             ) : (
                 <div className="space-y-2">
                     {newsItems.map((news) => (
-                    <Collapsible key={news.id} onOpenChange={(isOpen) => setSelectedItem(isOpen ? news.id! : null)} open={selectedItem === news.id} className={cn(
+                    <Collapsible key={news.id} onOpenChange={(isOpen) => {
+                       setSelectedItem(isOpen ? news.id! : null);
+                       handleToggleItem(isOpen, news.ticker);
+                    }} open={selectedItem === news.id} className={cn(
                         "border rounded-lg transition-colors",
                         selectedItem === news.id 
                             ? "bg-muted border-primary" 
@@ -124,7 +145,7 @@ export default function RealtimeNewsFeed() {
                                     <p className="font-semibold leading-snug flex-1 pt-1">{news.headline}</p>
                                 </div>
                                 <div className="flex items-center gap-2 pt-1">
-                                    <span className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</span>
+                                    <span className="text-xs text-muted-foreground">{getTimestamp(news.publishedDate)}</span>
                                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                 </div>
                             </div>
@@ -134,10 +155,22 @@ export default function RealtimeNewsFeed() {
                             <p className="text-xs italic text-muted-foreground mb-4">{news.content}</p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
-                                <MomentumIndicator icon={BarChart2} label="Volume" value={news.momentum.volume} />
-                                <MomentumIndicator icon={TrendingUp} label="Relative Volume" value={news.momentum.relativeVolume.toFixed(2)} />
-                                <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
-                                <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
+                                {marketDataFields.filter(f => marketDataConfig[f.id]).map(field => {
+                                    const data = liveData[news.ticker];
+                                    const value = data ? (data[field.id] !== undefined ? data[field.id] : news.momentum[field.id as keyof typeof news.momentum]) : null;
+                                    
+                                    if (loadingLiveData && !data) {
+                                      return <Skeleton key={field.id} className="h-5 w-full" />
+                                    }
+                                    return (
+                                      <MomentumIndicator 
+                                        key={field.id} 
+                                        icon={BarChart2} 
+                                        label={field.label} 
+                                        value={value !== null ? (typeof value === 'number' ? value.toFixed(2) : value) : "N/A"}
+                                      />
+                                    )
+                                 })}
                             </div>
 
                             <div className="flex flex-col gap-3 p-3 rounded-md bg-background/50 border text-sm">

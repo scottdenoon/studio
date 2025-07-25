@@ -6,8 +6,8 @@ import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { getNewsFeed, NewsItem } from '@/services/firestore';
-import { getNewsSources, NewsSource } from '@/app/admin/news/actions';
+import { getNewsFeed, NewsItem, getMarketDataConfig } from '@/services/firestore';
+import { getNewsSources } from '@/app/admin/news/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,8 @@ import Link from 'next/link';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { fetchStockData } from '@/services/market-data';
+import { MarketDataField, marketDataFields } from '@/services/firestore';
 
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
@@ -59,13 +61,20 @@ export default function NewsPage() {
   const [wsStatus, setWsStatus] = useState< 'closed' | 'connecting' | 'open'>('closed');
   const [isBriefingOpen, setBriefingOpen] = useState(false);
   const [view, setView] = useState<'detailed' | 'compact'>('detailed');
+  const [marketDataConfig, setMarketDataConfig] = useState<Record<string, boolean>>({});
+  const [liveData, setLiveData] = useState<Record<string, any>>({});
+  const [loadingLiveData, setLoadingLiveData] = useState(false);
 
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
     try {
-      const news = await getNewsFeed();
+      const [news, config] = await Promise.all([
+        getNewsFeed(),
+        getMarketDataConfig(),
+      ]);
       setNewsItems(news);
+      setMarketDataConfig(config);
     } catch (error) {
       console.error("Error fetching news:", error);
       toast({
@@ -138,6 +147,15 @@ export default function NewsPage() {
         return tickerMatch && sentimentMatch;
       });
   }, [newsItems, tickerFilter, sentimentFilter]);
+  
+   const handleToggleItem = async (isOpen: boolean, ticker: string) => {
+    if (isOpen) {
+      setLoadingLiveData(true);
+      const data = await fetchStockData({ ticker });
+      setLiveData(prev => ({...prev, [ticker]: data}));
+      setLoadingLiveData(false);
+    }
+  };
   
   const getTimestamp = (dateString: string, withDate = false) => {
     if (!dateString) return '';
@@ -235,7 +253,10 @@ export default function NewsPage() {
                         ) : view === 'detailed' ? (
                              <div className="space-y-3 pr-4">
                                 {filteredNews.map((news) => (
-                                    <Collapsible key={news.id} onOpenChange={(isOpen) => setOpenItemId(isOpen ? news.id! : null)} open={openItemId === news.id} className={cn(
+                                    <Collapsible key={news.id} onOpenChange={(isOpen) => {
+                                      setOpenItemId(isOpen ? news.id! : null);
+                                      handleToggleItem(isOpen, news.ticker);
+                                    }} open={openItemId === news.id} className={cn(
                                         "border rounded-lg transition-colors",
                                         openItemId === news.id 
                                             ? "bg-muted border-primary" 
@@ -255,7 +276,7 @@ export default function NewsPage() {
                                                     <p className="font-semibold leading-snug flex-1 pt-1">{news.headline}</p>
                                                 </div>
                                                 <div className="flex items-center gap-3 pt-1">
-                                                    <span className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</span>
+                                                    <span className="text-xs text-muted-foreground">{getTimestamp(news.publishedDate)}</span>
                                                     <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                                                 </div>
                                             </div>
@@ -265,10 +286,22 @@ export default function NewsPage() {
                                             <p className="text-sm italic text-muted-foreground mb-4">{news.content}</p>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-4">
-                                                <MomentumIndicator icon={BarChart2} label="Volume" value={news.momentum.volume} />
-                                                <MomentumIndicator icon={TrendingUp} label="Relative Volume" value={news.momentum.relativeVolume.toFixed(2)} />
-                                                <MomentumIndicator icon={Users} label="Float" value={news.momentum.float} />
-                                                <MomentumIndicator icon={FileText} label="Short Interest" value={news.momentum.shortInterest} />
+                                                 {marketDataFields.filter(f => marketDataConfig[f.id]).map(field => {
+                                                    const data = liveData[news.ticker];
+                                                    const value = data ? (data[field.id] !== undefined ? data[field.id] : news.momentum[field.id as keyof typeof news.momentum]) : null;
+                                                    
+                                                    if (loadingLiveData) {
+                                                      return <Skeleton key={field.id} className="h-5 w-full" />
+                                                    }
+                                                    return (
+                                                      <MomentumIndicator 
+                                                        key={field.id} 
+                                                        icon={BarChart2} 
+                                                        label={field.label} 
+                                                        value={value !== null ? (typeof value === 'number' ? value.toFixed(2) : value) : "N/A"}
+                                                      />
+                                                    )
+                                                 })}
                                             </div>
 
                                             {news.analysis ? (
@@ -305,7 +338,7 @@ export default function NewsPage() {
                                 <TableBody>
                                     {filteredNews.map(news => (
                                         <TableRow key={news.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setOpenItemId(openItemId === news.id ? null : news.id!)}>
-                                            <TableCell className="text-xs text-muted-foreground">{getTimestamp(news.timestamp)}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{getTimestamp(news.publishedDate)}</TableCell>
                                             <TableCell><Badge variant="outline">{news.ticker}</Badge></TableCell>
                                             <TableCell className="font-medium text-sm">{news.headline}</TableCell>
                                             <TableCell>
@@ -336,5 +369,3 @@ export default function NewsPage() {
     </div>
   );
 }
-
-    

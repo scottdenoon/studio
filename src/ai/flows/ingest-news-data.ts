@@ -16,6 +16,7 @@ const NewsItemSchema = z.object({
   ticker: z.string().describe("The stock ticker symbol for the news item."),
   headline: z.string().describe("The headline of the news article."),
   content: z.string().describe("The full content of the news article."),
+  publishedDate: z.string().describe("The original publication date and time of the article in ISO 8601 format."),
   momentum: z.object({
     volume: z.string().describe("The trading volume for the stock."),
     relativeVolume: z.number().describe("The relative trading volume compared to the average."),
@@ -49,7 +50,7 @@ const ingestNewsDataPrompt = ai.definePrompt({
   output: { schema: IngestNewsDataOutputSchema },
   prompt: `You are an expert data parsing AI. Your task is to analyze the provided raw data, which could be in JSON, XML, or plain text format, and extract structured news articles from it.
 
-You must parse the following raw data and convert it into a structured array of news articles. Each article must conform to the output schema. Pay close attention to mapping the source data fields to the correct schema fields.
+You must parse the following raw data and convert it into a structured array of news articles. Each article must conform to the output schema. Pay close attention to mapping the source data fields to the correct schema fields. It is critical to extract the original publication date and format it as an ISO 8601 string.
 {{#if fieldMapping}}
 Use this explicit mapping to guide your parsing. The key is the database field, and the value is the path in the source data.
 \`\`\`json
