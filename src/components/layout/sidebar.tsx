@@ -41,7 +41,7 @@ export default function Sidebar({ onBriefingClick }: SidebarProps) {
     { href: "/", icon: Home, label: "Dashboard" },
     { href: "/scanners", icon: BarChart, label: "Scanners" },
     { href: "/journal", icon: BookText, label: "Journal" },
-    { href: "#", icon: Star, label: "Watchlists" },
+    { href: "/watchlist", icon: Star, label: "Watchlists" },
     { href: "#", icon: Bot, label: "AI Briefing", onClick: onBriefingClick },
     { href: "/news", icon: Newspaper, label: "News" },
     { href: "#", icon: LineChart, label: "Charts" },
