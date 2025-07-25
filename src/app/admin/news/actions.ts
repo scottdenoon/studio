@@ -164,6 +164,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number, f
                     headline: article.headline,
                     content: article.content,
                     momentum: article.momentum,
+                    publishedDate: article.publishedDate,
                 });
                 totalImportedCount++;
 
