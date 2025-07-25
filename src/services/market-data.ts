@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -60,10 +61,10 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
 
         const quote = prevDayData.results[0];
 
-        await logActivity("INFO", `Fetched stock data for ${ticker}`);
+        await logActivity("INFO", `Fetched stock data for ${ticker}`, { ticker: ticker });
 
         return {
-            ticker: ticker,
+            ticker: ticker.toUpperCase(),
             name: name,
             price: quote.c, // Close price
             change: quote.c - quote.o, // Change (close - open)

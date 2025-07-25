@@ -155,7 +155,7 @@ export default function SystemLogsPage() {
   }
 
   const formatTimestamp = (dateString: string) => {
-    if (!dateString) return "N/A";
+    if (!dateString || isNaN(new Date(dateString).getTime())) return "Invalid date";
     try {
         return `${formatDistanceToNow(new Date(dateString))} ago`;
     } catch (e) {

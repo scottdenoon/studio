@@ -194,7 +194,7 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
     }
 
     const newWatchlistItem = {
-        ticker: item.ticker,
+        ticker: item.ticker.toUpperCase(),
         userId: item.userId,
     };
 
@@ -261,7 +261,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
 }
 
 
-export async function addNewsItem(item: Omit<NewsItemCreate, 'publishedDate'> & { publishedDate: string }): Promise<string> {
+export async function addNewsItem(item: NewsItemCreate): Promise<string> {
     const newItem = {
         ...item,
         timestamp: Timestamp.now(),
@@ -677,7 +677,6 @@ export interface MarketDataField {
     id: keyof (z.infer<typeof StockDataSchema> & NewsItem['momentum']);
     label: string;
     description: string;
-    defaultEnabled: boolean;
 }
 
 export async function getMarketDataConfig(): Promise<Record<string, boolean>> {

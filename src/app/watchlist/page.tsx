@@ -116,6 +116,7 @@ export default function WatchlistPage() {
               title: "Stock Exists",
               description: `${data.ticker} is already in your watchlist.`,
           });
+          setIsSubmitting(false);
           return;
       }
       await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
@@ -143,7 +144,7 @@ export default function WatchlistPage() {
   const handleRemove = async (id: string, ticker: string) => {
       try {
           await removeWatchlistItem(id);
-          setWatchlist(prev => prev.filter(item => item.id !== id));
+          await fetchWatchlist();
           toast({
               title: "Stock Removed",
               description: `${ticker} has been removed from your watchlist.`,
@@ -336,10 +337,12 @@ export default function WatchlistPage() {
                                                             </FormItem>
                                                         )} />
                                                         <DialogFooter>
-                                                            <Button type="submit" disabled={isSubmitting}>
-                                                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                                Save Alert
-                                                            </Button>
+                                                            <DialogClose asChild>
+                                                                <Button type="submit" disabled={isSubmitting}>
+                                                                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                                    Save Alert
+                                                                </Button>
+                                                            </DialogClose>
                                                         </DialogFooter>
                                                     </form>
                                                 </Form>
