@@ -50,6 +50,7 @@ const dataSourceSchema = z.object({
   type: z.enum(["API", "WebSocket"]),
   url: z.string().url("Must be a valid URL"),
   isActive: z.boolean().default(true),
+  frequency: z.coerce.number().min(1, "Frequency must be at least 1").optional(),
 })
 
 type DataSourceFormValues = z.infer<typeof dataSourceSchema>
@@ -68,6 +69,7 @@ export default function DataSourceManagementPage() {
       type: "API",
       url: "",
       isActive: true,
+      frequency: 5,
     },
   })
 
@@ -114,6 +116,7 @@ export default function DataSourceManagementPage() {
       type: "API",
       url: "",
       isActive: true,
+      frequency: 5,
     })
   }
 
@@ -188,6 +191,13 @@ export default function DataSourceManagementPage() {
                   <FormItem>
                     <FormLabel>URL</FormLabel>
                     <FormControl><Input placeholder="https://api.example.com" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="frequency" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Frequency (minutes)</FormLabel>
+                    <FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

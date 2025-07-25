@@ -19,14 +19,30 @@ export async function getPrompts(): Promise<Record<string, string>> {
     });
 
     const defaultPrompts = {
-        "analyzeNewsSentimentPrompt": `You are an AI-powered financial news analyst.
+        "analyzeNewsSentimentPrompt": `You are an expert financial analyst AI for day traders. Your task is to analyze the provided news article and determine its potential for creating immediate, short-term trading opportunities for the given stock ticker.
 
-  Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
+Filter out news that is not a direct catalyst for price movement. Ignore:
+- General market commentary or sector trends.
+- Class-action lawsuits or other legal news with long-term, uncertain outcomes.
+- Repetitive PR announcements.
+- Anything that is not actionable for a day trader.
 
-  Ticker: {{{ticker}}}
-  Headline: {{{headline}}}
-  Content: {{{content}}}`,
+Focus on identifying high-impact catalysts like:
+- Earnings announcements (especially surprises).
+- Mergers and acquisitions (M&A).
+- Clinical trial results for biotech companies.
+- Major product launches or FDA approvals.
+- Analyst upgrades/downgrades from reputable firms.
+- Unexpected executive changes.
+
+Based on the headline and content, provide:
+1.  A clear sentiment: "positive", "negative", or "neutral" from a trader's perspective.
+2.  An impact score from 1 to 100. A score of 1 means very low impact (e.g., market noise), while 100 means a very high and immediate market reaction is expected (e.g., a major M&A announcement).
+3.  A concise summary for a trader, explaining *why* this news is or is not a catalyst and the reasoning for your sentiment and impact score.
+
+Ticker: {{{ticker}}}
+Headline: {{{headline}}}
+Content: {{{content}}}`,
         "summarizeMarketTrendsPrompt": `You are an AI assistant that summarizes market conditions and trends.
 
   Summarize the market conditions and trends based on the following news feed:
@@ -62,14 +78,30 @@ export async function getPrompt(id: string): Promise<string> {
         return docSnap.data()!.content;
     }
     // Return a default if not found to avoid crashing flows
-    if (id === 'analyzeNewsSentimentPrompt') return `You are an AI-powered financial news analyst.
+    if (id === 'analyzeNewsSentimentPrompt') return `You are an expert financial analyst AI for day traders. Your task is to analyze the provided news article and determine its potential for creating immediate, short-term trading opportunities for the given stock ticker.
 
-  Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
+Filter out news that is not a direct catalyst for price movement. Ignore:
+- General market commentary or sector trends.
+- Class-action lawsuits or other legal news with long-term, uncertain outcomes.
+- Repetitive PR announcements.
+- Anything that is not actionable for a day trader.
 
-  Ticker: {{{ticker}}}
-  Headline: {{{headline}}}
-  Content: {{{content}}}`;
+Focus on identifying high-impact catalysts like:
+- Earnings announcements (especially surprises).
+- Mergers and acquisitions (M&A).
+- Clinical trial results for biotech companies.
+- Major product launches or FDA approvals.
+- Analyst upgrades/downgrades from reputable firms.
+- Unexpected executive changes.
+
+Based on the headline and content, provide:
+1.  A clear sentiment: "positive", "negative", or "neutral" from a trader's perspective.
+2.  An impact score from 1 to 100. A score of 1 means very low impact (e.g., market noise), while 100 means a very high and immediate market reaction is expected (e.g., a major M&A announcement).
+3.  A concise summary for a trader, explaining *why* this news is or is not a catalyst and the reasoning for your sentiment and impact score.
+
+Ticker: {{{ticker}}}
+Headline: {{{headline}}}
+Content: {{{content}}}`;
     if (id === 'summarizeMarketTrendsPrompt') return `You are an AI assistant that summarizes market conditions and trends.
 
   Summarize the market conditions and trends based on the following news feed:
@@ -329,9 +361,9 @@ export async function getUser(uid: string): Promise<UserProfile | null> {
 
 export async function getUsers(): Promise<UserProfile[]> {
     const usersCol = db.collection('users');
-    const userSnapshot = await usersCol.get();
+    const snapshot = await usersCol.get();
     const users: UserProfile[] = [];
-    userSnapshot.forEach(docSnap => {
+    snapshot.forEach(docSnap => {
         const data = docSnap.data();
         users.push({
             uid: docSnap.id,
@@ -413,9 +445,9 @@ export interface Scanner {
 
 export async function getScanners(): Promise<Scanner[]> {
     const scannerCol = db.collection('scanners');
-    const scannerSnapshot = await scannerCol.get();
+    const snapshot = await scannerCol.get();
     const scanners: Scanner[] = [];
-    scannerSnapshot.forEach(docSnap => {
+    snapshot.forEach(docSnap => {
         const data = docSnap.data();
         scanners.push({
             id: docSnap.id,
@@ -449,6 +481,7 @@ export interface DataSource {
   url: string;
   isActive: boolean;
   createdAt: string;
+  frequency?: number;
 }
 
 export async function getDataSources(): Promise<DataSource[]> {

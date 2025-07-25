@@ -21,6 +21,7 @@ export interface NewsSource {
   createdAt: string;
   apiKeyEnvVar?: string;
   fieldMapping?: FieldMapping[];
+  frequency?: number;
 }
 
 export async function getNewsSources(): Promise<NewsSource[]> {

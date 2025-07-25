@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, CheckCircle, Rss, Info, PlusCircle, Trash2, Key } from "lucide-react"
+import { Loader2, Edit, CheckCircle, Rss, Info, PlusCircle, Trash2, Key, Clock } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -65,6 +65,7 @@ const newsSourceSchema = z.object({
   isActive: z.boolean().default(true),
   apiKeyEnvVar: z.string().optional(),
   fieldMapping: z.array(fieldMappingSchema).optional(),
+  frequency: z.coerce.number().min(1, "Frequncy must be at least 1").optional(),
 })
 
 type NewsSourceFormValues = z.infer<typeof newsSourceSchema>
@@ -92,6 +93,7 @@ export default function NewsSourceManagementPage() {
       isActive: true,
       apiKeyEnvVar: "",
       fieldMapping: [],
+      frequency: 5,
     },
   })
   
@@ -171,6 +173,7 @@ export default function NewsSourceManagementPage() {
       isActive: true,
       apiKeyEnvVar: "",
       fieldMapping: [],
+      frequency: 5,
     })
   }
 
@@ -254,6 +257,14 @@ export default function NewsSourceManagementPage() {
                     <FormControl><Input placeholder="e.g. NEWS_API_KEY_1" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
+                )} />
+
+                <FormField control={form.control} name="frequency" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Frequency (minutes)</FormLabel>
+                        <FormControl><Input type="number" placeholder="e.g., 5" {...field} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
                 )} />
 
                 <Card>
@@ -374,6 +385,7 @@ export default function NewsSourceManagementPage() {
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Mappings</TableHead>
+                  <TableHead>Freq (min)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -384,6 +396,7 @@ export default function NewsSourceManagementPage() {
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                     </TableRow>
@@ -404,6 +417,12 @@ export default function NewsSourceManagementPage() {
                             {source.fieldMapping?.length || 0}
                           </Badge>
                       </TableCell>
+                       <TableCell>
+                          <Badge variant="outline" className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" />
+                            {source.frequency || 'N/A'}
+                          </Badge>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Switch
@@ -420,7 +439,7 @@ export default function NewsSourceManagementPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                       No news sources configured yet.
                     </TableCell>
                   </TableRow>
