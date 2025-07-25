@@ -48,6 +48,7 @@ export async function processWebSocketMessage(
     content: article.content,
     momentum: article.momentum,
     analysis: analysis,
+    publishedDate: article.publishedDate,
     timestamp: new Date().toISOString() // Set timestamp to now
   };
 
