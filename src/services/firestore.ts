@@ -3,8 +3,10 @@
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
-import { fetchStockData, StockData } from "@/services/market-data";
+import { fetchStockData } from "@/services/market-data";
+import { StockDataSchema } from "@/lib/types";
 import { logActivity } from "@/services/logging";
+import { z } from "zod";
 
 // --- Prompt Management ---
 
@@ -82,7 +84,7 @@ export type WatchlistItemFromDb = {
     ticker: string;
 };
 
-export type WatchlistItem = StockData & {
+export type WatchlistItem = z.infer<typeof StockDataSchema> & {
   id: string;
   userId: string;
 };

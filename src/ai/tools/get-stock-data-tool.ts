@@ -7,7 +7,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { fetchStockData, StockDataSchema as MarketDataStockSchema } from '@/services/market-data';
+import { fetchStockData } from '@/services/market-data';
+import { StockDataSchema as MarketDataStockSchema } from '@/lib/types';
 
 export const StockDataSchema = MarketDataStockSchema;
 
