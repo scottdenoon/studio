@@ -33,7 +33,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BookText, PlusCircle, Calendar as CalendarIcon, MoreVertical, Edit, Trash2, Image as ImageIcon, X, Bot, TrendingUp, TrendingDown, Percent, Sigma, Trophy, AlertTriangle, Loader2, Star } from 'lucide-react';
+import { BookText, PlusCircle, Calendar as CalendarIcon, MoreVertical, Edit, Trash2, Image as ImageIcon, X, Bot, TrendingUp, TrendingDown, Percent, Sigma, Trophy, AlertTriangle, Loader2, Star, LayoutGrid, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -49,6 +49,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import AiBriefing from '@/components/dashboard/market-summary';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 const journalEntrySchema = z.object({
   ticker: z.string().min(1, "Ticker is required").toUpperCase(),
@@ -77,6 +80,7 @@ export default function JournalPage() {
   const [isSummaryOpen, setSummaryOpen] = useState(false);
   const [summary, setSummary] = useState('');
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [view, setView] = useState<'grid' | 'list'>('grid');
 
 
   const form = useForm<JournalFormValues>({
@@ -245,8 +249,12 @@ export default function JournalPage() {
               <p className="text-muted-foreground">Log and review your trading activity to improve performance.</p>
             </div>
              <div className="flex items-center gap-2">
+                <ToggleGroup type="single" value={view} onValueChange={(value) => { if (value) setView(value as 'grid' | 'list')}} defaultValue="grid" size="sm">
+                  <ToggleGroupItem value="grid" aria-label="Grid view"><LayoutGrid /></ToggleGroupItem>
+                  <ToggleGroupItem value="list" aria-label="List view"><List /></ToggleGroupItem>
+                </ToggleGroup>
                 <Button onClick={handleGetSummary} variant="outline" disabled={entries.length === 0}>
-                    <Star className="mr-2 h-4 w-4 text-yellow-500" /> AI Summary (Premium)
+                    <Star className="mr-2 h-4 w-4 text-yellow-500" /> AI Summary
                 </Button>
                 <Button onClick={() => handleOpenDialog()}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Trade
@@ -300,9 +308,7 @@ export default function JournalPage() {
 
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-80 w-full" />)}
-            </div>
+            <Skeleton className="h-80 w-full" />
           ) : entries.length === 0 ? (
             <Alert>
               <BookText className="h-4 w-4" />
@@ -311,7 +317,7 @@ export default function JournalPage() {
                 Click "Add New Trade" to log your first trade and start tracking your performance.
               </AlertDescription>
             </Alert>
-          ) : (
+          ) : view === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {entries.map(entry => {
                  const { pnl, percentage } = calculateProfitLoss(entry);
@@ -369,6 +375,68 @@ export default function JournalPage() {
                  )
               })}
             </div>
+          ) : (
+             <Card>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Ticker</TableHead>
+                                <TableHead>P&L</TableHead>
+                                <TableHead>Dates</TableHead>
+                                <TableHead>Entry/Exit Price</TableHead>
+                                <TableHead>Quantity</TableHead>
+                                <TableHead><span className="sr-only">Actions</span></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {entries.map(entry => {
+                            const { pnl, percentage } = calculateProfitLoss(entry);
+                            const isProfit = pnl >= 0;
+                            return (
+                                <TableRow key={entry.id}>
+                                    <TableCell><Badge variant="outline">{entry.ticker}</Badge></TableCell>
+                                    <TableCell className={cn('font-medium', isProfit ? 'text-green-600' : 'text-red-600')}>
+                                        <div className='flex flex-col'>
+                                            <span>{pnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>
+                                            <span className='text-xs opacity-80'>({percentage.toFixed(2)}%)</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className='flex flex-col text-xs'>
+                                            <span>In: {format(new Date(entry.entryDate), "PP")}</span>
+                                            <span>Out: {format(new Date(entry.exitDate), "PP")}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className='flex flex-col text-xs'>
+                                            <span>${entry.entryPrice.toFixed(2)}</span>
+                                            <span>${entry.exitPrice.toFixed(2)}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{entry.quantity}</TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onSelect={() => handleOpenDialog(entry)}><Edit className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem></AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete this trade entry.</AlertDialogDescription></AlertDialogHeader>
+                                                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(entry.id!)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
           )}
         </main>
       </div>
