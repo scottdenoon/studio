@@ -13,7 +13,7 @@ export async function getWatchlist(
   userId: string
 ): Promise<WatchlistItem[]> {
   const watchlistCol = db.collection('watchlist');
-  const q = watchlistCol.where('userId', '==', userId);
+  const q = watchlistCol.where('userId', '==', userId).limit(50);
   const watchlistSnapshot = await q.get();
 
   if (watchlistSnapshot.empty) {

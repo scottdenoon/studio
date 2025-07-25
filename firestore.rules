@@ -1,8 +1,14 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to authenticated users
+    // Allow users to read their own watchlist items
+    match /watchlist/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Default rule: allow authenticated users to read/write other collections
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
