@@ -1,10 +1,11 @@
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
 import { fetchStockData, StockData } from "@/services/market-data";
-import { logActivity } from "./logging";
+import { logActivity } from "@/services/logging";
 
 // --- Prompt Management ---
 
@@ -135,8 +136,7 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const q = newsCol.orderBy("timestamp", "desc");
-    const newsSnapshot = await q.get();
+    const newsSnapshot = await newsCol.get();
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();

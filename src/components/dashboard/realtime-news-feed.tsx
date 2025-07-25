@@ -70,9 +70,6 @@ export default function RealtimeNewsFeed() {
     fetchNews();
   }, [toast]);
   
-  const sortedNewsItems = useMemo(() => {
-    return [...newsItems].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [newsItems]);
 
   const getTimestamp = (dateString: string) => {
     if (!dateString) return '';
@@ -98,7 +95,7 @@ export default function RealtimeNewsFeed() {
                  <div className="space-y-2">
                     {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                  </div>
-            ) : sortedNewsItems.length === 0 ? (
+            ) : newsItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 space-y-4 border border-dashed rounded-lg h-[400px]">
                     <Newspaper className="h-10 w-10" />
                     <p className="text-sm font-medium">No News Items</p>
@@ -106,7 +103,7 @@ export default function RealtimeNewsFeed() {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {sortedNewsItems.map((news) => (
+                    {newsItems.map((news) => (
                     <Collapsible key={news.id} onOpenChange={(isOpen) => setSelectedItem(isOpen ? news.id! : null)} open={selectedItem === news.id} className={cn(
                         "border rounded-lg transition-colors",
                         selectedItem === news.id 

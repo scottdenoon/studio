@@ -82,8 +82,7 @@ export default function NewsPage() {
         const tickerMatch = tickerFilter ? item.ticker.toLowerCase().includes(tickerFilter.toLowerCase()) : true;
         const sentimentMatch = sentimentFilter !== 'all' ? (item.analysis?.sentiment.toLowerCase() === sentimentFilter) : true;
         return tickerMatch && sentimentMatch;
-      })
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      });
   }, [newsItems, tickerFilter, sentimentFilter]);
   
   const getTimestamp = (dateString: string) => {
