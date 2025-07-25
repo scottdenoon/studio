@@ -46,12 +46,26 @@ const analyzeNewsSentimentPrompt = ai.definePrompt({
   name: 'analyzeNewsSentimentPrompt',
   input: {schema: AnalyzeNewsSentimentInputSchema},
   output: {schema: AnalyzeNewsSentimentOutputSchema},
-  prompt: `You are an expert financial analyst AI. Your task is to analyze the provided news article and determine its potential impact on the stock price for the given ticker.
+  prompt: `You are an expert financial analyst AI for day traders. Your task is to analyze the provided news article and determine its potential for creating immediate, short-term trading opportunities for the given stock ticker.
+
+Filter out news that is not a direct catalyst for price movement. Ignore:
+- General market commentary or sector trends.
+- Class-action lawsuits or other legal news with long-term, uncertain outcomes.
+- Repetitive PR announcements.
+- Anything that is not actionable for a day trader.
+
+Focus on identifying high-impact catalysts like:
+- Earnings announcements (especially surprises).
+- Mergers and acquisitions (M&A).
+- Clinical trial results for biotech companies.
+- Major product launches or FDA approvals.
+- Analyst upgrades/downgrades from reputable firms.
+- Unexpected executive changes.
 
 Based on the headline and content, provide:
-1.  A clear sentiment: "positive", "negative", or "neutral".
-2.  An impact score from 1 to 100. A score of 1 means very low impact, while 100 means a very high and immediate market reaction is expected. Consider factors like the certainty of the news, the source's reputation, and how direct the impact is on the company's financials.
-3.  A concise summary explaining your reasoning for the sentiment and impact score.
+1.  A clear sentiment: "positive", "negative", or "neutral" from a trader's perspective.
+2.  An impact score from 1 to 100. A score of 1 means very low impact (e.g., market noise), while 100 means a very high and immediate market reaction is expected (e.g., a major M&A announcement).
+3.  A concise summary for a trader, explaining *why* this news is or is not a catalyst and the reasoning for your sentiment and impact score.
 
 Ticker: {{{ticker}}}
 Headline: {{{headline}}}
