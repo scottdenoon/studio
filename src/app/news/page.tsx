@@ -25,7 +25,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { fetchStockData } from '@/services/market-data';
-import { MarketDataField, marketDataFields } from '@/services/firestore';
+import { MarketDataField } from '@/services/firestore';
+import { marketDataFields } from '@/app/admin/market-data-config/page';
 
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {

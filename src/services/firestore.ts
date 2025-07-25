@@ -680,29 +680,22 @@ export interface MarketDataField {
     defaultEnabled: boolean;
 }
 
-export const marketDataFields: MarketDataField[] = [
-    { id: 'price', label: 'Price', description: 'Latest closing price.', defaultEnabled: true },
-    { id: 'change', label: 'Change ($)', description: 'Price change from previous day.', defaultEnabled: true },
-    { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.', defaultEnabled: true },
-    { id: 'volume', label: 'Volume', description: 'Trading volume for the day.', defaultEnabled: true },
-    { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.', defaultEnabled: true },
-    { id: 'float', label: 'Float', description: 'Shares available for trading.', defaultEnabled: false },
-    { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.', defaultEnabled: false },
-    { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.', defaultEnabled: false },
-];
-
-
 export async function getMarketDataConfig(): Promise<Record<string, boolean>> {
     const docRef = db.collection('app_config').doc('market_data');
     const docSnap = await docRef.get();
     if (docSnap.exists) {
         return docSnap.data() as Record<string, boolean>;
     } else {
-        // Return default config if it doesn't exist
-        const defaultConfig = marketDataFields.reduce((acc, field) => {
-            acc[field.id] = field.defaultEnabled;
-            return acc;
-        }, {} as Record<string, boolean>);
+        const defaultConfig = {
+            price: true,
+            change: true,
+            changePercent: true,
+            volume: true,
+            relativeVolume: true,
+            float: false,
+            shortInterest: false,
+            priceAction: false,
+        };
         await docRef.set(defaultConfig);
         return defaultConfig;
     }

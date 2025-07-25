@@ -17,10 +17,11 @@ import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { getNewsFeed, NewsItem, getMarketDataConfig, MarketDataField, marketDataFields } from "@/services/firestore";
+import { getNewsFeed, NewsItem, getMarketDataConfig, MarketDataField } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { fetchStockData } from "@/services/market-data";
+import { marketDataFields } from "@/app/admin/market-data-config/page";
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
     <div className="flex items-center text-xs text-muted-foreground">
