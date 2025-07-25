@@ -7,11 +7,12 @@ import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { getNewsFeed, NewsItem } from '@/services/firestore';
+import { getNewsSources, NewsSource } from '@/app/admin/news/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Newspaper, Search, Bot, Loader2, TrendingUp, TrendingDown, Minus, ChevronDown, BarChart2, Users, FileText } from 'lucide-react';
+import { Newspaper, Search, Bot, Loader2, TrendingUp, TrendingDown, Minus, ChevronDown, BarChart2, Users, FileText, Wifi, WifiOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -50,6 +51,7 @@ export default function NewsPage() {
   const [tickerFilter, setTickerFilter] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState("all");
   const [openItemId, setOpenItemId] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState< 'closed' | 'connecting' | 'open'>('closed');
 
   const fetchNews = useCallback(async () => {
     setLoading(true);
@@ -71,8 +73,52 @@ export default function NewsPage() {
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
-    } else if (user) {
+      return;
+    } 
+    if (user) {
       fetchNews();
+
+      const connectWebSocket = async () => {
+        const sources = await getNewsSources();
+        const wsSource = sources.find(s => s.isActive && s.type === 'WebSocket');
+        
+        if (!wsSource) {
+            return;
+        }
+
+        setWsStatus('connecting');
+        const wsUrl = `/api/websocket-news?url=${encodeURIComponent(wsSource.url)}`;
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => setWsStatus('open');
+        socket.onclose = () => setWsStatus('closed');
+        socket.onerror = (err) => {
+            console.error("WebSocket Error:", err);
+            setWsStatus('closed');
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const newItem: NewsItem = JSON.parse(event.data);
+                // Add a temporary unique ID for rendering
+                newItem.id = `ws-${new Date().getTime()}`;
+                setNewsItems(prev => [newItem, ...prev]);
+            } catch (err) {
+                console.error("Error parsing WebSocket message:", err);
+            }
+        };
+
+        return () => {
+            if (socket.readyState === 1) { // <-- This is important
+                socket.close();
+            }
+        };
+      };
+
+      const cleanup = connectWebSocket();
+      return () => {
+          cleanup.then(fn => fn && fn());
+      }
     }
   }, [user, authLoading, router, fetchNews]);
 
@@ -147,6 +193,11 @@ export default function NewsPage() {
                                 <SelectItem value="neutral">Neutral</SelectItem>
                             </SelectContent>
                         </Select>
+                        <div className="flex items-center text-sm text-muted-foreground gap-2">
+                            {wsStatus === 'connecting' && <><Loader2 className="h-4 w-4 animate-spin" /><span>Connecting...</span></>}
+                            {wsStatus === 'open' && <><Wifi className="h-4 w-4 text-green-500" /><span>Live</span></>}
+                            {wsStatus === 'closed' && <><WifiOff className="h-4 w-4" /><span>Offline</span></>}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>

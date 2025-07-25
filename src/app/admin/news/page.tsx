@@ -244,7 +244,7 @@ export default function NewsSourceManagementPage() {
                 <FormField control={form.control} name="url" render={({ field }) => (
                   <FormItem>
                     <FormLabel>URL</FormLabel>
-                    <FormControl><Input placeholder="https://api.example.com/news" {...field} /></FormControl>
+                    <FormControl><Input placeholder={form.getValues("type") === "WebSocket" ? "wss://socket.example.com" : "https://api.example.com/news"} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -327,7 +327,7 @@ export default function NewsSourceManagementPage() {
           <CardContent className="space-y-4">
             <Button onClick={handleFetchNews} disabled={fetching} className="w-full">
               {fetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Rss className="mr-2 h-4 w-4" />}
-              Fetch News From Sources
+              Fetch News From API Sources
             </Button>
             <Separator />
             {loadingNewsSources ? <Skeleton className="h-24 w-full" /> :
