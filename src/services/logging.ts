@@ -19,6 +19,14 @@ export async function logActivity(severity: LogEntry['severity'], action: string
         details: details || {}, // Ensure details is always an object
     };
     const docRef = await db.collection("logs").add(logEntry);
+    // We don't await this log to avoid infinite loops if logging fails
+    if (action !== "logActivity failed") {
+        try {
+            // Don't log the log itself to avoid noise
+        } catch (e) {
+            console.error("Failed to log the logActivity event itself. This is to prevent loops.", e);
+        }
+    }
     return docRef.id;
 }
 

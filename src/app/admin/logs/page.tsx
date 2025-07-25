@@ -24,12 +24,12 @@ import { LogEntry } from "@/services/logging"
 import { format, subMinutes } from "date-fns"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
-import { AlertTriangle, Info, CheckCircle, History, LineChart, PieChart, BarChart } from "lucide-react"
+import { AlertTriangle, Info, CheckCircle, History, LineChart, PieChart, BarChart, ShoppingCart } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore"
 import { db as clientDb } from '@/lib/firebase/client';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart"
-import { Bar, BarChart as RechartsBarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell } from "recharts"
+import { Bar, BarChart as RechartsBarChart, Line, LineChart as RechartsLineChart, Pie, PieChart as RechartsPieChart, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Cell, ResponsiveContainer } from "recharts"
 
 
 // This function sets up the real-time subscription to logs from Firestore.
@@ -81,12 +81,13 @@ export default function SystemLogsPage() {
 
     // Cleanup subscription on component unmount
     return () => unsubscribe();
-  }, [toast]);
+  }, [toast, loading]);
 
   const chartData = useMemo(() => {
     const severityCounts = { INFO: 0, WARN: 0, ERROR: 0 };
     const actionCounts: { [key: string]: number } = {};
     const ingestionVolumes: { time: string, volume: number }[] = [];
+    const marketDataRequests: { [ticker: string]: number } = {};
 
     logs.forEach(log => {
         // Severity
@@ -97,17 +98,24 @@ export default function SystemLogsPage() {
         actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
 
         // Ingestion Volume
-        if (log.action === "Fetched from source" && log.details?.dataVolume) {
+        if (log.action.startsWith("Fetched from source") && log.details?.dataVolume) {
             const volume = parseInt(log.details.dataVolume.split(' ')[0], 10);
             if (!isNaN(volume)) {
                 ingestionVolumes.push({ time: log.timestamp, volume });
             }
         }
+        
+        // Market Data requests
+        if (log.action.startsWith("Fetched stock data for") && log.details?.ticker) {
+            marketDataRequests[log.details.ticker] = (marketDataRequests[log.details.ticker] || 0) + 1;
+        }
     });
 
     const severityChartData = Object.entries(severityCounts).map(([name, value]) => ({ name, value, fill: severityColors[name as LogEntry['severity']] }));
 
-    const topActions = Object.entries(actionCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value }));
+    const topActions = Object.entries(actionCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value, fill: "var(--color-value)" }));
+    
+    const topMarketRequests = Object.entries(marketDataRequests).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value, fill: "var(--color-value)" }));
     
     // Group ingestion volume by minute
     const now = new Date();
@@ -124,7 +132,7 @@ export default function SystemLogsPage() {
     const ingestionChartData = Object.entries(volumeByMinute).map(([time, volume]) => ({ name: time, Volume: volume / 1024 })).sort((a,b) => a.name.localeCompare(b.name));
 
 
-    return { severityChartData, topActions, ingestionChartData };
+    return { severityChartData, topActions, ingestionChartData, topMarketRequests };
 
   }, [logs]);
 
@@ -146,16 +154,24 @@ export default function SystemLogsPage() {
     if (!dateString) return "N/A";
     return `${formatDistanceToNow(new Date(dateString))} ago`;
   }
+  
+  const chartConfig = {
+      value: { label: "Count", color: "hsl(var(--chart-1))" },
+      Volume: { label: "KB", color: "hsl(var(--chart-1))" },
+      INFO: { label: "Info", color: "hsl(var(--chart-2))" },
+      WARN: { label: "Warning", color: "hsl(var(--chart-3))" },
+      ERROR: { label: "Error", color: "hsl(var(--chart-5))" },
+  }
 
   return (
     <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg"><PieChart className="h-5 w-5"/>Log Severity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{}} className="mx-auto aspect-square h-[200px]">
+                    <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[200px]">
                         <RechartsPieChart>
                             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                             <Pie data={chartData.severityChartData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={60} paddingAngle={5}>
@@ -168,29 +184,13 @@ export default function SystemLogsPage() {
                     </ChartContainer>
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg"><BarChart className="h-5 w-5"/>Top Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <ChartContainer config={{ value: { label: "Count" }}} className="h-[200px] w-full">
-                        <RechartsBarChart data={chartData.topActions} layout="vertical" margin={{ left: 20, right: 20 }}>
-                             <XAxis type="number" hide />
-                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} width={150} />
-                             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                             <Bar dataKey="value" layout="vertical" radius={5} fill="hsl(var(--primary))" />
-                        </RechartsBarChart>
-                    </ChartContainer>
-                </CardContent>
-            </Card>
-            <Card>
+             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg"><LineChart className="h-5 w-5"/>Ingestion Volume (KB)</CardTitle>
-                    <CardDescription>Data ingestion volume over the last 30 minutes.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{ Volume: { label: "KB", color: "hsl(var(--chart-1))" } }} className="h-[160px] w-full">
-                        <RechartsLineChart data={chartData.ingestionChartData} margin={{ left: 12, right: 12 }}>
+                    <ChartContainer config={chartConfig} className="h-[200px] w-full">
+                        <RechartsLineChart data={chartData.ingestionChartData} margin={{ left: -10, right: 20, top: 5, bottom: 0 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
                              <YAxis tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 12 }} />
@@ -200,6 +200,37 @@ export default function SystemLogsPage() {
                     </ChartContainer>
                 </CardContent>
             </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><BarChart className="h-5 w-5"/>Top Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={chartConfig} className="h-[200px] w-full">
+                        <RechartsBarChart data={chartData.topActions} layout="vertical" margin={{ left: 20, right: 20 }}>
+                             <XAxis type="number" hide />
+                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12, width: 150 }} width={150} />
+                             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                             <Bar dataKey="value" layout="vertical" radius={5} fill="hsl(var(--primary))" />
+                        </RechartsBarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg"><ShoppingCart className="h-5 w-5"/>Market Data Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <ChartContainer config={chartConfig} className="h-[200px] w-full">
+                        <RechartsBarChart data={chartData.topMarketRequests} layout="vertical" margin={{ left: 0, right: 20 }}>
+                             <XAxis type="number" hide />
+                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} width={60}/>
+                             <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                             <Bar dataKey="value" layout="vertical" radius={5} fill="hsl(var(--accent))" />
+                        </RechartsBarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+           
         </div>
         <Card>
         <CardHeader>
@@ -262,5 +293,3 @@ export default function SystemLogsPage() {
     </div>
   )
 }
-
-    

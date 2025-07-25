@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { StockDataSchema } from '@/lib/types';
+import { logActivity } from './logging';
 
 export type StockData = z.infer<typeof StockDataSchema>;
 
@@ -12,6 +13,7 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
     // Wrap the entire function in a try-catch to handle any potential errors gracefully.
     try {
         if (!apiKey) {
+            await logActivity("ERROR", "Missing Polygon API Key", { detail: "POLYGON_API_KEY is not configured in the environment."});
             throw new Error('POLYGON_API_KEY is not configured in the environment.');
         }
 
@@ -23,12 +25,12 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
         
         if (!detailsResponse.ok) {
              const errorText = await detailsResponse.text();
-             console.warn(`Could not fetch company details for ${ticker}: ${errorText}`);
+             await logActivity("WARN", `Could not fetch company details for ${ticker}`, { error: errorText });
              // Return a default object but still try to get price data
         }
          if (!prevDayResponse.ok) {
             const errorText = await prevDayResponse.text();
-            console.error(`Could not fetch previous day data for ${ticker}: ${errorText}`);
+            await logActivity("ERROR", `Could not fetch previous day data for ${ticker}`, { error: errorText });
              // If price fails, return a zeroed object
             return {
                 ticker: ticker,
@@ -58,6 +60,8 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
 
         const quote = prevDayData.results[0];
 
+        await logActivity("INFO", `Fetched stock data for ${ticker}`);
+
         return {
             ticker: ticker,
             name: name,
@@ -68,7 +72,7 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
         };
 
     } catch (error) {
-        console.error(`[fetchStockData Service Error] for ${ticker}:`, error);
+        await logActivity("ERROR", `[fetchStockData Service Error] for ${ticker}`, { error: (error as Error).message });
         // Return zeroed data on unexpected errors to prevent server component crashes
         return {
             ticker: ticker,
