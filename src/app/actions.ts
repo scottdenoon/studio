@@ -44,7 +44,3 @@ export async function getWatchlist(
 
   return watchlist;
 }
-
-export async function getJournalEntries(userId: string): Promise<TradeJournalEntry[]> {
-    return await getJournalEntriesFromDb(userId);
-}
