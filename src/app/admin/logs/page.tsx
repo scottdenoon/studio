@@ -41,9 +41,13 @@ function subscribeToLogs(callback: (logs: LogEntry[]) => void, logLimit: number 
     const logs: LogEntry[] = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
+      const timestamp = data.timestamp && typeof data.timestamp.toDate === 'function' 
+            ? data.timestamp.toDate().toISOString() 
+            : data.timestamp;
+            
       logs.push({
         id: doc.id,
-        timestamp: data.timestamp.toDate().toISOString(),
+        timestamp: timestamp,
         severity: data.severity,
         action: data.action,
         details: data.details,
@@ -152,7 +156,11 @@ export default function SystemLogsPage() {
 
   const formatTimestamp = (dateString: string) => {
     if (!dateString) return "N/A";
-    return `${formatDistanceToNow(new Date(dateString))} ago`;
+    try {
+        return `${formatDistanceToNow(new Date(dateString))} ago`;
+    } catch (e) {
+        return "Invalid date";
+    }
   }
   
   const chartConfig = {
