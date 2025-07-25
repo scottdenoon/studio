@@ -53,7 +53,22 @@ Content: {{{content}}}`,
 
   Focus on identifying stocks with high relative volume, significant price changes, and breaking news. Highlight key movers and the reasons for their momentum based on the following news feed:
 
-  {{{newsFeed}}}`
+  {{{newsFeed}}}`,
+        "summarizeJournalTradesPrompt": `You are an expert trading psychologist and performance coach AI. Your task is to analyze the provided list of trades from a user's journal and deliver a concise, insightful summary.
+
+Your analysis should focus on identifying patterns, strengths, and weaknesses. Do not just state the obvious (e.g., "you had wins and losses"). Provide actionable insights that can help the trader improve.
+
+Based on the trade data, generate a summary that covers:
+1.  **Overall Performance:** Briefly comment on the net profitability.
+2.  **Key Strengths:** What went right? Identify patterns in winning trades. Did the user follow their notes? Was there a common setup?
+3.  **Areas for Improvement:** What went wrong? Identify patterns in losing trades. Was there evidence of cutting winners short or letting losers run? Was there a lack of notes on losing trades? Are they trading specific tickers poorly?
+4.  **Actionable Advice:** Based on the analysis, provide 2-3 specific, actionable tips for the trader to consider.
+
+Analyze the following trades:
+\`\`\`json
+{{{json trades}}}
+\`\`\`
+`
     };
 
     let createdDefaults = false;
@@ -219,7 +234,7 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const newsSnapshot = await newsCol.get();
+    const newsSnapshot = await newsCol.orderBy("timestamp", "desc").limit(100).get();
     
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
@@ -238,9 +253,6 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
-    // Sort in-memory instead of in the query
-    newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
     return newsFeed;
 }
 
@@ -607,8 +619,8 @@ export async function getJournalEntries(userId: string): Promise<TradeJournalEnt
             id: docSnap.id,
             userId: data.userId,
             ticker: data.ticker,
-            entryDate: data.entryDate.toDate().toISOString(),
-            exitDate: data.exitDate.toDate().toISOString(),
+            entryDate: data.entryDate,
+            exitDate: data.exitDate,
             entryPrice: data.entryPrice,
             exitPrice: data.exitPrice,
             quantity: data.quantity,
