@@ -15,10 +15,10 @@ import {
   addJournalEntry,
   updateJournalEntry,
   deleteJournalEntry,
-  getJournalEntries,
   TradeJournalEntry,
   TradeJournalEntryCreate
 } from '@/services/firestore';
+import { getJournalEntriesAction } from '@/app/actions';
 
 
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +80,7 @@ export default function JournalPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const entryData = await getJournalEntries(user.uid);
+      const entryData = await getJournalEntriesAction(user.uid);
       setEntries(entryData);
     } catch (error) {
       console.error("Error fetching journal entries:", error);
@@ -233,7 +233,7 @@ export default function JournalPage() {
                         <div className="flex justify-between items-start">
                           <div>
                             <CardTitle className="text-xl">{entry.ticker}</CardTitle>
-                            <CardDescription>{format(new Date(entry.entryDate), "PPP p")}</CardDescription>
+                            <CardDescription>{format(new Date(entry.entryDate), "PPP")}</CardDescription>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -263,7 +263,7 @@ export default function JournalPage() {
                             <div><p className="text-muted-foreground">Entry</p><p className="font-medium">${entry.entryPrice.toFixed(2)}</p></div>
                             <div><p className="text-muted-foreground">Exit</p><p className="font-medium">${entry.exitPrice.toFixed(2)}</p></div>
                             <div><p className="text-muted-foreground">Quantity</p><p className="font-medium">{entry.quantity}</p></div>
-                            <div><p className="text-muted-foreground">Exit Date</p><p className="font-medium">{format(new Date(entry.exitDate), "PP p")}</p></div>
+                            <div><p className="text-muted-foreground">Exit Date</p><p className="font-medium">{format(new Date(entry.exitDate), "PP")}</p></div>
                         </div>
                         {entry.notes && <p className="text-xs text-muted-foreground border-t pt-2 italic">"{entry.notes}"</p>}
                       </CardContent>
@@ -306,7 +306,7 @@ export default function JournalPage() {
                   <FormItem className="flex flex-col"><FormLabel>Entry Date</FormLabel>
                     <Popover><PopoverTrigger asChild>
                         <FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "PPP p") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
                     </PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
@@ -316,7 +316,7 @@ export default function JournalPage() {
                   <FormItem className="flex flex-col"><FormLabel>Exit Date</FormLabel>
                     <Popover><PopoverTrigger asChild>
                         <FormControl><Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                            {field.value ? format(field.value, "PPP p") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl>
                     </PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
                         <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />

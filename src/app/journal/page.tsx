@@ -16,9 +16,9 @@ import {
   updateJournalEntry,
   deleteJournalEntry,
   TradeJournalEntry,
-  getJournalEntries,
   TradeJournalEntryCreate
 } from '@/services/firestore';
+import { getJournalEntriesAction } from '@/app/actions';
 
 
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +80,7 @@ export default function JournalPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const entryData = await getJournalEntries(user.uid);
+      const entryData = await getJournalEntriesAction(user.uid);
       setEntries(entryData);
     } catch (error) {
       console.error("Error fetching journal entries:", error);

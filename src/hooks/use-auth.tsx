@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
-import { getUser, UserProfile } from '@/services/firestore';
+import { UserProfile } from '@/services/firestore';
 
 interface AuthContextType {
   user: User | null;
