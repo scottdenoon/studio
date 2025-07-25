@@ -70,19 +70,17 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
 
     for (const source of activeSources) {
         try {
-            let url = source.url;
+            const url = new URL(source.url);
             if (source.apiKeyEnvVar) {
                 const apiKey = process.env[source.apiKeyEnvVar];
                 if (apiKey) {
-                    // Check if URL already has query params
-                    const separator = url.includes('?') ? '&' : '?';
-                    url = `${url}${separator}apiKey=${apiKey}`;
+                    url.searchParams.append('apiKey', apiKey);
                 } else {
                     await logActivity("WARN", `API key environment variable "${source.apiKeyEnvVar}" not set for source: ${source.name}.`);
                 }
             }
 
-            const response = await fetch(url);
+            const response = await fetch(url.toString());
             const rawData = await response.text();
             
             await logActivity("INFO", `Fetched from source: ${source.name}`, { 
