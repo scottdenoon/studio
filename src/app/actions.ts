@@ -3,6 +3,7 @@
 
 import { db } from '@/lib/firebase/server';
 import { fetchStockData, StockData } from '@/services/market-data';
+import { getWatchlist as getWatchlistFromDb } from '@/services/firestore';
 
 export type WatchlistItem = StockData & {
   id: string;
@@ -12,20 +13,12 @@ export type WatchlistItem = StockData & {
 export async function getWatchlist(
   userId: string
 ): Promise<WatchlistItem[]> {
-  const watchlistCol = db.collection('watchlist');
-  const q = watchlistCol.where('userId', '==', userId).limit(50);
-  const watchlistSnapshot = await q.get();
-
-  if (watchlistSnapshot.empty) {
-    return [];
-  }
-
-  const watchlistPromises = watchlistSnapshot.docs.map(async (doc) => {
-    const docData = doc.data();
-    const stockData = await fetchStockData({ ticker: docData.ticker });
+  const watchlistItems = await getWatchlistFromDb(userId);
+  
+  const watchlistPromises = watchlistItems.map(async (item) => {
+    const stockData = await fetchStockData({ ticker: item.ticker });
     return {
-      id: doc.id,
-      userId: docData.userId,
+      ...item,
       ...stockData,
     };
   });
@@ -34,7 +27,7 @@ export async function getWatchlist(
 
   const watchlist: WatchlistItem[] = [];
   settledPromises.forEach((result) => {
-    if (result.status === 'fulfilled') {
+    if (result.status === 'fulfilled' && result.value) {
       watchlist.push(result.value);
     } else {
       console.error('Failed to fetch watchlist item data:', result.reason);

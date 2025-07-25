@@ -42,12 +42,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { addWatchlistItem, removeWatchlistItem, WatchlistItem, addAlert } from "@/services/firestore"
+import { addWatchlistItem, removeWatchlistItem, addAlert } from "@/services/firestore"
+import { WatchlistItem, getWatchlist } from "@/app/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { useAuth } from "@/hooks/use-auth"
-import { getWatchlist } from "@/app/actions"
+
 
 const watchlistSchema = z.object({
     ticker: z.string().min(1, "Ticker is required").max(5, "Ticker is too long").transform(value => value.toUpperCase()),
@@ -144,7 +145,12 @@ export default function Watchlist() {
             }
 
             const newWatchlistItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
-            setWatchlist(prev => [...prev, newWatchlistItem]);
+            // The action now returns a fully populated item
+            const fullNewItem = await getWatchlist(user.uid).then(list => list.find(item => item.ticker === newWatchlistItem.ticker));
+            if (fullNewItem) {
+                setWatchlist(prev => [...prev, fullNewItem]);
+            }
+            
             toast({
                 title: "Stock Added",
                 description: `${data.ticker} has been added to your watchlist.`,

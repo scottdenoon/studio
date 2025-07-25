@@ -1,5 +1,6 @@
 
 
+
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -76,12 +77,34 @@ export async function savePrompt(id: string, content: string): Promise<void> {
 }
 
 // --- Watchlist Management ---
-export type WatchlistItem = StockData & {
-  id: string;
-  userId: string;
+
+export type WatchlistItemFromDb = {
+    id: string;
+    userId: string;
+    ticker: string;
 };
 
-export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<WatchlistItem> {
+export async function getWatchlist(userId: string): Promise<WatchlistItemFromDb[]> {
+    const watchlistCol = db.collection('watchlist');
+    const q = watchlistCol.where('userId', '==', userId).limit(50);
+    const watchlistSnapshot = await q.get();
+
+    if (watchlistSnapshot.empty) {
+        return [];
+    }
+
+    return watchlistSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            userId: data.userId,
+            ticker: data.ticker,
+        }
+    }) as WatchlistItemFromDb[];
+}
+
+
+export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<StockData & WatchlistItemFromDb> {
     const stockData = await fetchStockData({ ticker: item.ticker });
     
     if (stockData.price === 0 && stockData.volume === 0) {
@@ -101,6 +124,7 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
         ...stockData,
         id: docRef.id,
         userId: item.userId,
+        ticker: item.ticker,
     };
 }
 
@@ -136,7 +160,9 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const newsSnapshot = await newsCol.get();
+    const q = newsCol.orderBy("timestamp", "desc");
+    const newsSnapshot = await q.get();
+    
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
         const data = docSnap.data();
@@ -154,8 +180,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
-    // Sort by timestamp descending in code to avoid indexing issues
-    return newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return newsFeed;
 }
 
 

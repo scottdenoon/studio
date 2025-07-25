@@ -3,14 +3,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read their own watchlist items
-    match /watchlist/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Default rule: allow authenticated users to read/write other collections
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    match /watchlist/{docId} {
+      allow read, create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    match /trade_journal/{docId} {
+      allow read, create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+    match /news_feed/{docId} {
+      allow read: if request.auth != null;
+    }
+     match /scanners/{docId} {
+      allow read: if request.auth != null;
+    }
+     match /alerts/{docId} {
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+    // Admin-only collections
+    match /prompts/{docId} {
+      allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /news_sources/{docId} {
+      allow read, write, delete: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /data_sources/{docId} {
+       allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /feature_flags/{docId} {
+      allow read, write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /logs/{docId} {
+       allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /test_writes/{docId} {
+      allow create: if request.auth != null;
     }
   }
 }
