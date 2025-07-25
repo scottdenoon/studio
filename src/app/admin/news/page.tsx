@@ -235,7 +235,7 @@ export default function NewsSourceManagementPage() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="API">API</SelectItem>
-                        <SelectItem value="WebSocket" disabled>WebSocket</SelectItem>
+                        <SelectItem value="WebSocket">WebSocket</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
