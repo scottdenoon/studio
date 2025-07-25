@@ -10,7 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { getPrompt } from '@/services/firestore';
 
 const SummarizeMomentumTrendsInputSchema = z.object({
   newsFeed: z.string().describe('A summary of recent market news and price action.'),
@@ -36,7 +35,11 @@ const summarizeMomentumTrendsPrompt = ai.definePrompt({
   name: 'summarizeMomentumTrendsPrompt',
   input: {schema: SummarizeMomentumTrendsInputSchema},
   output: {schema: SummarizeMomentumTrendsOutputSchema},
-  prompt: async () => await getPrompt('summarizeMomentumTrendsPrompt'),
+  prompt: `You are an AI assistant that summarizes market momentum.
+
+  Focus on identifying stocks with high relative volume, significant price changes, and breaking news. Highlight key movers and the reasons for their momentum based on the following news feed:
+
+  {{{newsFeed}}}`,
 });
 
 const summarizeMomentumTrendsFlow = ai.defineFlow(

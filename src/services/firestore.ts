@@ -60,15 +60,8 @@ export async function getPrompt(id: string): Promise<string> {
     const docSnap = await docRef.get();
     if (docSnap.exists) {
         return docSnap.data()!.content;
-    } else {
-        // Fallback to default if not in DB for some reason
-        const defaultPrompts = await getPrompts();
-        if (id in defaultPrompts) {
-            return defaultPrompts[id];
-        }
-        await logActivity("ERROR", `Prompt with id "${id}" not found in database or defaults.`);
-        throw new Error(`Prompt with id "${id}" not found!`);
     }
+    throw new Error(`Prompt with id "${id}" not found!`);
 }
 
 export async function savePrompt(id: string, content: string): Promise<void> {
