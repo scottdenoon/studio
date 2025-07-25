@@ -83,6 +83,39 @@ export type WatchlistItemFromDb = {
     ticker: string;
 };
 
+export type WatchlistItem = StockData & {
+  id: string;
+  userId: string;
+};
+
+export async function getWatchlist(
+  userId: string
+): Promise<WatchlistItem[]> {
+  const watchlistItems = await getWatchlistFromDb(userId);
+  
+  const watchlistPromises = watchlistItems.map(async (item) => {
+    const stockData = await fetchStockData({ ticker: item.ticker });
+    return {
+      ...item,
+      ...stockData,
+    };
+  });
+
+  const settledPromises = await Promise.allSettled(watchlistPromises);
+
+  const watchlist: WatchlistItem[] = [];
+  settledPromises.forEach((result) => {
+    if (result.status === 'fulfilled' && result.value) {
+      watchlist.push(result.value);
+    } else {
+      console.error('Failed to fetch watchlist item data:', result.reason);
+    }
+  });
+
+  return watchlist;
+}
+
+
 export async function getWatchlistFromDb(userId: string): Promise<WatchlistItemFromDb[]> {
     const watchlistCol = db.collection('watchlist');
     const q = watchlistCol.where('userId', '==', userId).limit(50);

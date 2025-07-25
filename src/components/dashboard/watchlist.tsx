@@ -42,12 +42,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { addWatchlistItem, removeWatchlistItem, addAlert } from "@/services/firestore"
-import { WatchlistItem, getWatchlist } from "@/app/actions"
+import { addWatchlistItem, removeWatchlistItem, addAlert, WatchlistItem } from "@/services/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { useAuth } from "@/hooks/use-auth"
+import { getWatchlistAction } from "@/app/actions"
 
 
 const watchlistSchema = z.object({
@@ -94,7 +94,7 @@ export default function Watchlist() {
         }
         setLoading(true);
         try {
-            const items = await getWatchlist(user.uid);
+            const items = await getWatchlistAction(user.uid);
             setWatchlist(items);
         } catch (error) {
             console.error("Error fetching watchlist:", error);
@@ -144,12 +144,11 @@ export default function Watchlist() {
                 return;
             }
 
-            const newWatchlistItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
-            // The action now returns a fully populated item
-            const fullNewItem = await getWatchlist(user.uid).then(list => list.find(item => item.ticker === newWatchlistItem.ticker));
-            if (fullNewItem) {
-                setWatchlist(prev => [...prev, fullNewItem]);
-            }
+            const newItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
+            
+            // Refetch the entire list to ensure consistency with what the DB returns
+            const updatedList = await getWatchlistAction(user.uid);
+            setWatchlist(updatedList);
             
             toast({
                 title: "Stock Added",
