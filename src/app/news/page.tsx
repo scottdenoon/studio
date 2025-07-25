@@ -26,7 +26,6 @@ import AiBriefing from '@/components/dashboard/market-summary';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { fetchStockData } from '@/services/market-data';
 import { MarketDataField } from '@/services/firestore';
-import { marketDataFields } from '@/app/admin/market-data-config/page';
 
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
@@ -66,6 +65,16 @@ export default function NewsPage() {
   const [liveData, setLiveData] = useState<Record<string, any>>({});
   const [loadingLiveData, setLoadingLiveData] = useState(false);
 
+  const marketDataFields: Omit<MarketDataField, 'defaultEnabled'>[] = [
+    { id: 'price', label: 'Price', description: 'Latest closing price.' },
+    { id: 'change', label: 'Change ($)', description: 'Price change from previous day.' },
+    { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.' },
+    { id: 'volume', label: 'Volume', description: 'Trading volume for the day.' },
+    { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.' },
+    { id: 'float', label: 'Float', description: 'Shares available for trading.' },
+    { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.' },
+    { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.' },
+  ];
 
   const fetchNews = useCallback(async () => {
     setLoading(true);

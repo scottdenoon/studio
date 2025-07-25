@@ -21,22 +21,22 @@ import { StockDataSchema } from "@/lib/types"
 import { NewsItem } from "@/services/firestore"
 import { z } from "zod"
 
-export const marketDataFields: MarketDataField[] = [
-    { id: 'price', label: 'Price', description: 'Latest closing price.', defaultEnabled: true },
-    { id: 'change', label: 'Change ($)', description: 'Price change from previous day.', defaultEnabled: true },
-    { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.', defaultEnabled: true },
-    { id: 'volume', label: 'Volume', description: 'Trading volume for the day.', defaultEnabled: true },
-    { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.', defaultEnabled: true },
-    { id: 'float', label: 'Float', description: 'Shares available for trading.', defaultEnabled: false },
-    { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.', defaultEnabled: false },
-    { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.', defaultEnabled: false },
-];
-
 export default function MarketDataConfigPage() {
   const [config, setConfig] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
+
+  const marketDataFields: MarketDataField[] = [
+      { id: 'price', label: 'Price', description: 'Latest closing price.', defaultEnabled: true },
+      { id: 'change', label: 'Change ($)', description: 'Price change from previous day.', defaultEnabled: true },
+      { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.', defaultEnabled: true },
+      { id: 'volume', label: 'Volume', description: 'Trading volume for the day.', defaultEnabled: true },
+      { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.', defaultEnabled: true },
+      { id: 'float', label: 'Float', description: 'Shares available for trading.', defaultEnabled: false },
+      { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.', defaultEnabled: false },
+      { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.', defaultEnabled: false },
+  ];
 
   useEffect(() => {
     const fetchConfig = async () => {

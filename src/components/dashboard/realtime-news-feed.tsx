@@ -21,7 +21,7 @@ import { getNewsFeed, NewsItem, getMarketDataConfig, MarketDataField } from "@/s
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { fetchStockData } from "@/services/market-data";
-import { marketDataFields } from "@/app/admin/market-data-config/page";
+
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
     <div className="flex items-center text-xs text-muted-foreground">
@@ -50,6 +50,17 @@ export default function RealtimeNewsFeed() {
   const [liveData, setLiveData] = useState<Record<string, any>>({});
   const [loadingLiveData, setLoadingLiveData] = useState(false);
   const { toast } = useToast();
+
+  const marketDataFields: Omit<MarketDataField, 'defaultEnabled'>[] = [
+    { id: 'price', label: 'Price', description: 'Latest closing price.' },
+    { id: 'change', label: 'Change ($)', description: 'Price change from previous day.' },
+    { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.' },
+    { id: 'volume', label: 'Volume', description: 'Trading volume for the day.' },
+    { id: 'relativeVolume', label: 'Relative Volume', description: 'Volume compared to average.' },
+    { id: 'float', label: 'Float', description: 'Shares available for trading.' },
+    { id: 'shortInterest', label: 'Short Interest', description: 'Percentage of shares held short.' },
+    { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.' },
+  ];
 
   const fetchInitialData = useCallback(async () => {
     setLoadingFeed(true);
