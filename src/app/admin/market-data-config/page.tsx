@@ -27,7 +27,7 @@ export default function MarketDataConfigPage() {
   const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
 
-  const marketDataFields: MarketDataField[] = [
+  const marketDataFields: (MarketDataField & { defaultEnabled: boolean })[] = [
       { id: 'price', label: 'Price', description: 'Latest closing price.', defaultEnabled: true },
       { id: 'change', label: 'Change ($)', description: 'Price change from previous day.', defaultEnabled: true },
       { id: 'changePercent', label: 'Change (%)', description: 'Percentage price change.', defaultEnabled: true },
