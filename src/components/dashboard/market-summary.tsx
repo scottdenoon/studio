@@ -112,18 +112,18 @@ export default function MarketSummary() {
       <CardContent className="pt-2">
           <Separator className="mb-4" />
           {loading && (
-             <div className="flex items-center gap-2 text-muted-foreground h-16">
+             <div className="flex items-center gap-2 text-muted-foreground min-h-[4rem]">
                 <Loader2 className="h-4 w-4 animate-spin"/>
                 <span>Analyzing market data...</span>
              </div>
           )}
           {summary && !loading && (
-              <div className="space-y-2 text-sm text-foreground/90 h-16">
+              <div className="space-y-2 text-sm text-foreground/90 min-h-[4rem]">
                 <p>{summary.summary}</p>
               </div>
           )}
           {error && !loading && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm h-16">
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg flex items-center gap-3 text-sm min-h-[4rem]">
                 <AlertTriangle className="h-5 w-5 shrink-0" />
                 <p><span className="font-semibold">Analysis Failed:</span> {error}</p>
               </div>
