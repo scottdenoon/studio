@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -45,14 +46,16 @@ const analyzeNewsSentimentPrompt = ai.definePrompt({
   name: 'analyzeNewsSentimentPrompt',
   input: {schema: AnalyzeNewsSentimentInputSchema},
   output: {schema: AnalyzeNewsSentimentOutputSchema},
-  prompt: `You are an AI-powered financial news analyst.
+  prompt: `You are an expert financial analyst AI. Your task is to analyze the provided news article and determine its potential impact on the stock price for the given ticker.
 
-  Analyze the following news article to determine its sentiment and potential impact on the stock price.
-  Provide a sentiment analysis (positive, negative, or neutral), an impact score from 1 to 100, and a brief summary of the news and its potential impact.
+Based on the headline and content, provide:
+1.  A clear sentiment: "positive", "negative", or "neutral".
+2.  An impact score from 1 to 100. A score of 1 means very low impact, while 100 means a very high and immediate market reaction is expected. Consider factors like the certainty of the news, the source's reputation, and how direct the impact is on the company's financials.
+3.  A concise summary explaining your reasoning for the sentiment and impact score.
 
-  Ticker: {{{ticker}}}
-  Headline: {{{headline}}}
-  Content: {{{content}}}`,
+Ticker: {{{ticker}}}
+Headline: {{{headline}}}
+Content: {{{content}}}`,
 });
 
 const analyzeNewsSentimentFlow = ai.defineFlow(
