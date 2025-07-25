@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -26,6 +27,7 @@ const NewsItemSchema = z.object({
 
 const IngestNewsDataInputSchema = z.object({
   rawData: z.string().describe('The raw text or JSON data fetched from the news source URL.'),
+  fieldMapping: z.record(z.string()).optional().describe('An optional mapping of database fields to source fields (e.g., {"headline": "article.title"}).'),
 });
 export type IngestNewsDataInput = z.infer<typeof IngestNewsDataInputSchema>;
 
@@ -48,9 +50,17 @@ const ingestNewsDataPrompt = ai.definePrompt({
   prompt: `You are an expert data parsing AI. Your task is to analyze the provided raw data, which could be in JSON, XML, or plain text format, and extract structured news articles from it.
 
 You must parse the following raw data and convert it into a structured array of news articles. Each article must conform to the output schema. Pay close attention to mapping the source data fields to the correct schema fields.
+{{#if fieldMapping}}
+Use this explicit mapping to guide your parsing. The key is the database field, and the value is the path in the source data.
+\`\`\`json
+{{{json fieldMapping}}}
+\`\`\`
+{{/if}}
 
 Raw Data:
+\`\`\`
 {{{rawData}}}
+\`\`\`
 `,
 });
 

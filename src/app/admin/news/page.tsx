@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Edit, CheckCircle, Rss, Info } from "lucide-react"
+import { Loader2, Edit, CheckCircle, Rss, Info, PlusCircle, Trash2, Key } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Select,
@@ -53,15 +53,27 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+const fieldMappingSchema = z.object({
+  dbField: z.string().min(1, "Required"),
+  sourceField: z.string().min(1, "Required"),
+});
+
 const newsSourceSchema = z.object({
   name: z.string().min(3, "Name is required"),
   type: z.enum(["API", "WebSocket"]),
   url: z.string().url("Must be a valid URL"),
   isActive: z.boolean().default(true),
   apiKeyEnvVar: z.string().optional(),
+  fieldMapping: z.array(fieldMappingSchema).optional(),
 })
 
 type NewsSourceFormValues = z.infer<typeof newsSourceSchema>
+
+const dbFields = [
+  "ticker", "headline", "content", 
+  "momentum.volume", "momentum.relativeVolume", "momentum.float",
+  "momentum.shortInterest", "momentum.priceAction"
+];
 
 export default function NewsSourceManagementPage() {
   const [loading, setLoading] = useState(false)
@@ -79,8 +91,14 @@ export default function NewsSourceManagementPage() {
       url: "",
       isActive: true,
       apiKeyEnvVar: "",
+      fieldMapping: [],
     },
   })
+  
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "fieldMapping",
+  });
 
   useEffect(() => {
     fetchNewsSources()
@@ -138,7 +156,10 @@ export default function NewsSourceManagementPage() {
 
   const handleEdit = (source: NewsSource) => {
     setEditingId(source.id!)
-    form.reset(source)
+    form.reset({
+      ...source,
+      fieldMapping: source.fieldMapping || []
+    })
   }
 
   const handleCancelEdit = () => {
@@ -149,6 +170,7 @@ export default function NewsSourceManagementPage() {
       url: "",
       isActive: true,
       apiKeyEnvVar: "",
+      fieldMapping: [],
     })
   }
 
@@ -234,6 +256,45 @@ export default function NewsSourceManagementPage() {
                   </FormItem>
                 )} />
 
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center justify-between">
+                          Field Mapping (Optional)
+                          <Button type="button" size="sm" variant="outline" onClick={() => append({ dbField: "", sourceField: "" })}>
+                            <PlusCircle className="h-4 w-4 mr-2" /> Add
+                          </Button>
+                        </CardTitle>
+                        <CardDescription className="text-xs">Map database fields to source API fields.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2 max-h-60 overflow-y-auto p-2">
+                       {fields.map((field, index) => (
+                          <div key={field.id} className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                            <FormField control={form.control} name={`fieldMapping.${index}.dbField`} render={({ field }) => (
+                               <FormItem className="flex-1">
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl><SelectTrigger><SelectValue placeholder="DB Field" /></SelectTrigger></FormControl>
+                                  <SelectContent>{dbFields.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <FormMessage className="text-xs" />
+                               </FormItem>
+                            )} />
+                             <FormField control={form.control} name={`fieldMapping.${index}.sourceField`} render={({ field }) => (
+                               <FormItem className="flex-1">
+                                <FormControl><Input placeholder="Source Field (e.g. article.title)" {...field} /></FormControl>
+                                <FormMessage className="text-xs" />
+                                </FormItem>
+                             )} />
+                             <Button type="button" size="icon" variant="ghost" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive"/>
+                             </Button>
+                          </div>
+                       ))}
+                       {fields.length === 0 && (
+                          <p className="text-center text-xs text-muted-foreground py-4">No field mappings defined.</p>
+                       )}
+                    </CardContent>
+                </Card>
+
                 <FormField control={form.control} name="isActive" render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
@@ -312,6 +373,7 @@ export default function NewsSourceManagementPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Mappings</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -322,6 +384,7 @@ export default function NewsSourceManagementPage() {
                       <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                     </TableRow>
                   ))
@@ -334,6 +397,12 @@ export default function NewsSourceManagementPage() {
                         <Badge variant={source.isActive ? "default" : "destructive"}>
                           {source.isActive ? "Active" : "Inactive"}
                         </Badge>
+                      </TableCell>
+                       <TableCell>
+                          <Badge variant="outline" className="flex items-center gap-1.5">
+                            <Key className="h-3 w-3" />
+                            {source.fieldMapping?.length || 0}
+                          </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -351,7 +420,7 @@ export default function NewsSourceManagementPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                       No news sources configured yet.
                     </TableCell>
                   </TableRow>

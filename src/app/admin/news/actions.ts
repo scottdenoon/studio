@@ -5,9 +5,13 @@ import { db, Timestamp } from "@/lib/firebase/server";
 import { logActivity } from "@/services/logging";
 import { addNewsItem, saveNewsItemAnalysis } from "@/services/firestore";
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
-import { ingestNewsData } from "@/ai/flows/ingest-news-data";
+import { ingestNewsData, IngestNewsDataInput } from "@/ai/flows/ingest-news-data";
 
 // --- News Source Management ---
+export interface FieldMapping {
+    dbField: string;
+    sourceField: string;
+}
 export interface NewsSource {
   id?: string;
   name: string;
@@ -16,6 +20,7 @@ export interface NewsSource {
   isActive: boolean;
   createdAt: string;
   apiKeyEnvVar?: string;
+  fieldMapping?: FieldMapping[];
 }
 
 export async function getNewsSources(): Promise<NewsSource[]> {
@@ -93,8 +98,16 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number }>
                 continue;
             }
             
+            const ingestInput: IngestNewsDataInput = { rawData };
+            if (source.fieldMapping && source.fieldMapping.length > 0) {
+              ingestInput.fieldMapping = source.fieldMapping.reduce((acc, item) => {
+                acc[item.dbField] = item.sourceField;
+                return acc;
+              }, {} as {[key: string]: string});
+            }
+
             // Use AI to parse the raw data
-            const { articles } = await ingestNewsData({ rawData });
+            const { articles } = await ingestNewsData(ingestInput);
 
             if (!articles || articles.length === 0) {
                  await logActivity("WARN", `AI could not parse any articles from source: ${source.name}`);
