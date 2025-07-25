@@ -27,6 +27,7 @@ export interface NewsSource {
   createdAt: string;
   apiKeyEnvVar?: string;
   fieldMapping?: FieldMapping[];
+  isFieldMappingEnabled?: boolean;
   frequency?: number;
   filters?: NewsSourceFilters;
 }
@@ -132,7 +133,7 @@ export async function fetchNewsFromSources(): Promise<{ importedCount: number, f
             }
             
             const ingestInput: IngestNewsDataInput = { rawData };
-            if (source.fieldMapping && source.fieldMapping.length > 0) {
+            if (source.isFieldMappingEnabled && source.fieldMapping && source.fieldMapping.length > 0) {
               ingestInput.fieldMapping = source.fieldMapping.reduce((acc, item) => {
                 acc[item.dbField] = item.sourceField;
                 return acc;

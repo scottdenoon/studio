@@ -67,6 +67,7 @@ const newsSourceSchema = z.object({
   isActive: z.boolean().default(true),
   apiKeyEnvVar: z.string().optional(),
   fieldMapping: z.array(fieldMappingSchema).optional(),
+  isFieldMappingEnabled: z.boolean().default(false),
   frequency: z.coerce.number().min(1, "Frequency must be at least 1").optional(),
   filters: z.object({
     includeKeywords: z.array(keywordSchema).optional(),
@@ -126,6 +127,7 @@ export default function NewsSourceManagementPage() {
       isActive: true,
       apiKeyEnvVar: "",
       fieldMapping: [],
+      isFieldMappingEnabled: false,
       frequency: 5,
       filters: { includeKeywords: [], excludeKeywords: [] },
     },
@@ -195,6 +197,7 @@ export default function NewsSourceManagementPage() {
     form.reset({
       ...source,
       fieldMapping: source.fieldMapping || [],
+      isFieldMappingEnabled: source.isFieldMappingEnabled || false,
       filters: {
         includeKeywords: source.filters?.includeKeywords?.map(v => ({value: v})) || [],
         excludeKeywords: source.filters?.excludeKeywords?.map(v => ({value: v})) || []
@@ -211,6 +214,7 @@ export default function NewsSourceManagementPage() {
       isActive: true,
       apiKeyEnvVar: "",
       fieldMapping: [],
+      isFieldMappingEnabled: false,
       frequency: 5,
       filters: { includeKeywords: [], excludeKeywords: [] },
     })
@@ -317,41 +321,51 @@ export default function NewsSourceManagementPage() {
                 )} />
 
                 <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center justify-between">
-                          Field Mapping (Optional)
-                          <Button type="button" size="sm" variant="outline" onClick={() => append({ dbField: "", sourceField: "" })}>
-                            <PlusCircle className="h-4 w-4 mr-2" /> Add
-                          </Button>
-                        </CardTitle>
-                        <CardDescription className="text-xs">Map database fields to source API fields.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2 max-h-60 overflow-y-auto p-2">
-                       {fields.map((field, index) => (
-                          <div key={field.id} className="flex items-center gap-2 bg-muted p-2 rounded-md">
-                            <FormField control={form.control} name={`fieldMapping.${index}.dbField`} render={({ field }) => (
-                               <FormItem className="flex-1">
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl><SelectTrigger><SelectValue placeholder="DB Field" /></SelectTrigger></FormControl>
-                                  <SelectContent>{dbFields.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <FormMessage className="text-xs" />
-                               </FormItem>
-                            )} />
-                             <FormField control={form.control} name={`fieldMapping.${index}.sourceField`} render={({ field }) => (
-                               <FormItem className="flex-1">
-                                <FormControl><Input placeholder="Source Field (e.g. article.title)" {...field} /></FormControl>
-                                <FormMessage className="text-xs" />
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <CardTitle className="text-base">Field Mapping</CardTitle>
+                                <CardDescription className="text-xs">Map database fields to source API fields.</CardDescription>
+                            </div>
+                             <FormField control={form.control} name="isFieldMappingEnabled" render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                <FormLabel className="text-xs">Enabled</FormLabel>
                                 </FormItem>
-                             )} />
-                             <Button type="button" size="icon" variant="ghost" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4 text-destructive"/>
-                             </Button>
-                          </div>
-                       ))}
-                       {fields.length === 0 && (
-                          <p className="text-center text-xs text-muted-foreground py-4">No field mappings defined.</p>
-                       )}
+                            )} />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 p-4 pt-0">
+                        <Button type="button" size="sm" variant="outline" onClick={() => append({ dbField: "", sourceField: "" })} className="w-full">
+                            <PlusCircle className="h-4 w-4 mr-2" /> Add Mapping
+                        </Button>
+                       <div className="space-y-2 max-h-60 overflow-y-auto p-1">
+                            {fields.map((field, index) => (
+                            <div key={field.id} className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                                <FormField control={form.control} name={`fieldMapping.${index}.dbField`} render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl><SelectTrigger><SelectValue placeholder="DB Field" /></SelectTrigger></FormControl>
+                                    <SelectContent>{dbFields.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                    <FormMessage className="text-xs" />
+                                </FormItem>
+                                )} />
+                                <FormField control={form.control} name={`fieldMapping.${index}.sourceField`} render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormControl><Input placeholder="Source Field (e.g. article.title)" {...field} /></FormControl>
+                                    <FormMessage className="text-xs" />
+                                    </FormItem>
+                                )} />
+                                <Button type="button" size="icon" variant="ghost" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive"/>
+                                </Button>
+                            </div>
+                            ))}
+                            {fields.length === 0 && (
+                            <p className="text-center text-xs text-muted-foreground py-4">No field mappings defined.</p>
+                            )}
+                       </div>
                     </CardContent>
                 </Card>
 
@@ -481,7 +495,7 @@ export default function NewsSourceManagementPage() {
                           </Badge>
                       </TableCell>
                        <TableCell>
-                          <Badge variant="outline" className="flex items-center gap-1.5">
+                          <Badge variant={source.isFieldMappingEnabled ? "default" : "outline"} className="flex items-center gap-1.5">
                             <Key className="h-3 w-3" />
                             {source.fieldMapping?.length || 0}
                           </Badge>
