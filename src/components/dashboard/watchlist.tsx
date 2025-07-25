@@ -144,11 +144,8 @@ export default function Watchlist() {
                 return;
             }
 
-            const newItem = await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
-            
-            // Refetch the entire list to ensure consistency with what the DB returns
-            const updatedList = await getWatchlistAction(user.uid);
-            setWatchlist(updatedList);
+            await addWatchlistItem({ ticker: data.ticker, userId: user.uid });
+            await fetchWatchlist();
             
             toast({
                 title: "Stock Added",

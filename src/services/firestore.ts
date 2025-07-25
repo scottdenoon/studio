@@ -1,5 +1,4 @@
 
-
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -91,9 +90,16 @@ export type WatchlistItem = StockData & {
 export async function getWatchlist(
   userId: string
 ): Promise<WatchlistItem[]> {
-  const watchlistItems = await getWatchlistFromDb(userId);
-  
-  const watchlistPromises = watchlistItems.map(async (item) => {
+  const watchlistCol = db.collection('watchlist');
+  const q = watchlistCol.where('userId', '==', userId).limit(50);
+  const watchlistSnapshot = await q.get();
+
+  if (watchlistSnapshot.empty) {
+    return [];
+  }
+
+  const watchlistPromises = watchlistSnapshot.docs.map(async (doc) => {
+    const item = { id: doc.id, ...doc.data() } as WatchlistItemFromDb;
     const stockData = await fetchStockData({ ticker: item.ticker });
     return {
       ...item,
@@ -107,7 +113,7 @@ export async function getWatchlist(
   settledPromises.forEach((result) => {
     if (result.status === 'fulfilled' && result.value) {
       watchlist.push(result.value);
-    } else {
+    } else if (result.status === 'rejected') {
       console.error('Failed to fetch watchlist item data:', result.reason);
     }
   });
@@ -115,28 +121,7 @@ export async function getWatchlist(
   return watchlist;
 }
 
-
-export async function getWatchlistFromDb(userId: string): Promise<WatchlistItemFromDb[]> {
-    const watchlistCol = db.collection('watchlist');
-    const q = watchlistCol.where('userId', '==', userId).limit(50);
-    const watchlistSnapshot = await q.get();
-
-    if (watchlistSnapshot.empty) {
-        return [];
-    }
-
-    return watchlistSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            userId: data.userId,
-            ticker: data.ticker,
-        }
-    }) as WatchlistItemFromDb[];
-}
-
-
-export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<StockData & WatchlistItemFromDb> {
+export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<void> {
     const stockData = await fetchStockData({ ticker: item.ticker });
     
     if (stockData.price === 0 && stockData.volume === 0) {
@@ -145,19 +130,12 @@ export async function addWatchlistItem(item: {ticker: string, userId: string}): 
     }
 
     const newWatchlistItem = {
-        ticker: item.ticker, // Only store the ticker and user ID
+        ticker: item.ticker,
         userId: item.userId,
     };
 
-    const docRef = await db.collection("watchlist").add(newWatchlistItem);
+    await db.collection("watchlist").add(newWatchlistItem);
     await logActivity("INFO", `User ${item.userId} added "${item.ticker}" to watchlist.`);
-    
-    return {
-        ...stockData,
-        id: docRef.id,
-        userId: item.userId,
-        ticker: item.ticker,
-    };
 }
 
 export async function removeWatchlistItem(id: string): Promise<void> {
@@ -192,7 +170,8 @@ export type NewsItemCreate = Omit<NewsItem, 'id' | 'timestamp' | 'analysis'>;
 
 export async function getNewsFeed(): Promise<NewsItem[]> {
     const newsCol = db.collection('news_feed');
-    const newsSnapshot = await newsCol.get();
+    const q = newsCol.orderBy("timestamp", "desc");
+    const newsSnapshot = await q.get();
     
     const newsFeed: NewsItem[] = [];
     newsSnapshot.forEach(docSnap => {
@@ -211,7 +190,7 @@ export async function getNewsFeed(): Promise<NewsItem[]> {
         newsFeed.push(plainObject);
     });
     
-    return newsFeed.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return newsFeed;
 }
 
 
@@ -287,9 +266,9 @@ export async function addUserProfile(data: NewUserProfile): Promise<UserProfile>
         userProfileData = { ...existingData, ...updateData } as Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
     } else {
         const usersCol = db.collection('users');
-        const userSnapshot = await usersCol.limit(3).get();
-        const isEarlyUser = userSnapshot.size < 3;
-        const role = isEarlyUser ? 'admin' : 'basic';
+        const userSnapshot = await usersCol.orderBy("createdAt", "desc").limit(1).get();
+        const isFirstUser = userSnapshot.empty;
+        const role = isFirstUser ? 'admin' : 'basic';
 
         userProfileData = {
             email: data.email,
@@ -360,7 +339,7 @@ export async function addSampleUsers(): Promise<void> {
         { email: 'basic-user@example.com', role: 'basic' },
     ];
     
-    const userRefs = sampleUsers.map(user => {
+    sampleUsers.forEach(user => {
         const userRef = db.collection('users').doc();
         usersBatch.set(userRef, {
             ...user,
@@ -369,7 +348,6 @@ export async function addSampleUsers(): Promise<void> {
             createdAt: now,
             lastSeen: now,
         });
-        return userRef;
     });
 
     await usersBatch.commit();

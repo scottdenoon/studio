@@ -233,7 +233,7 @@ export default function JournalPage() {
                         <div className="flex justify-between items-start">
                           <div>
                             <CardTitle className="text-xl">{entry.ticker}</CardTitle>
-                            <CardDescription>{format(new Date(entry.entryDate), "PPP p")}</CardDescription>
+                            <CardDescription>{format(new Date(entry.entryDate), "PPP")}</CardDescription>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -263,7 +263,7 @@ export default function JournalPage() {
                             <div><p className="text-muted-foreground">Entry</p><p className="font-medium">${entry.entryPrice.toFixed(2)}</p></div>
                             <div><p className="text-muted-foreground">Exit</p><p className="font-medium">${entry.exitPrice.toFixed(2)}</p></div>
                             <div><p className="text-muted-foreground">Quantity</p><p className="font-medium">{entry.quantity}</p></div>
-                            <div><p className="text-muted-foreground">Exit Date</p><p className="font-medium">{format(new Date(entry.exitDate), "PP p")}</p></div>
+                            <div><p className="text-muted-foreground">Exit Date</p><p className="font-medium">{format(new Date(entry.exitDate), "PP")}</p></div>
                         </div>
                         {entry.notes && <p className="text-xs text-muted-foreground border-t pt-2 italic">"{entry.notes}"</p>}
                       </CardContent>
