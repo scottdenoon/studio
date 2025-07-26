@@ -7,6 +7,7 @@ import { logActivity } from "@/services/logging";
 import { fetchStockData } from "@/services/market-data";
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
 import { ingestNewsData, IngestNewsDataInput } from "@/ai/flows/ingest-news-data";
+import { NewsSource, NewsSourceFilters } from "@/lib/types";
 
 
 export async function getWatchlistAction(
@@ -170,30 +171,6 @@ export async function savePrompt(id: string, content: string): Promise<void> {
 }
 
 // --- News Source Management ---
-export interface FieldMapping {
-    dbField: string;
-    sourceField: string;
-}
-
-export interface NewsSourceFilters {
-    includeKeywords?: string[];
-    excludeKeywords?: string[];
-}
-
-export interface NewsSource {
-  id?: string;
-  name: string;
-  type: "API" | "WebSocket";
-  url: string;
-  isActive: boolean;
-  createdAt: string;
-  apiKeyEnvVar?: string;
-  fieldMapping?: FieldMapping[];
-  isFieldMappingEnabled?: boolean;
-  frequency?: number;
-  filters?: NewsSourceFilters;
-}
-
 export async function getNewsSources(): Promise<NewsSource[]> {
     const newsSourceCol = db.collection('news_sources');
     const snapshot = await newsSourceCol.get();

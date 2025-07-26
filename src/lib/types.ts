@@ -8,3 +8,28 @@ export const StockDataSchema = z.object({
     changePercent: z.number().describe('The percentage change in price from the previous day.'),
     volume: z.number().describe('The trading volume for the day.'),
 });
+
+// --- News Source Management ---
+export interface FieldMapping {
+    dbField: string;
+    sourceField: string;
+}
+
+export interface NewsSourceFilters {
+    includeKeywords?: string[];
+    excludeKeywords?: string[];
+}
+
+export interface NewsSource {
+  id?: string;
+  name: string;
+  type: "API" | "WebSocket";
+  url: string;
+  isActive: boolean;
+  createdAt: string;
+  apiKeyEnvVar?: string;
+  fieldMapping?: FieldMapping[];
+  isFieldMappingEnabled?: boolean;
+  frequency?: number;
+  filters?: NewsSourceFilters;
+}

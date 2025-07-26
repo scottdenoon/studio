@@ -47,8 +47,8 @@ import {
   getNewsSources,
   updateNewsSource,
   fetchNewsFromSources,
-  NewsSource,
 } from "@/app/actions"
+import { NewsSource } from "@/lib/types"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
