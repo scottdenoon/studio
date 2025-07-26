@@ -1,6 +1,5 @@
 
 'use server'
-import { headers } from 'next/headers'
 import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe'
 import { getUser } from '@/services/firestore';
 
