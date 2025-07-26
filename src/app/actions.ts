@@ -2,9 +2,10 @@
 'use server';
 
 import { db, Timestamp } from "@/lib/firebase/server";
-import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, getNewsSources as getNewsSourcesFromDb, NewsSource, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb } from '@/services/firestore';
+import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb, getMarketDataConfig as getMarketDataConfigFromDb, updateMarketDataConfig as updateMarketDataConfigInDb, getScanners as getScannersFromDb, saveScanner as saveScannerInDb, updateScanner as updateScannerInDb, Scanner, addTestDocument as addTestDocumentInDb, getPrompts as getPromptsFromDb, savePrompt as savePromptInDb } from '@/services/firestore';
 import { logActivity } from "@/services/logging";
 import { fetchStockData } from "@/services/market-data";
+import { NewsSource as NewsSourceType, fetchNewsFromSources as fetchNewsFromSourcesAction } from "@/app/admin/news/actions";
 
 
 export async function getWatchlistAction(
@@ -103,10 +104,6 @@ export async function deleteJournalEntry(id: string): Promise<void> {
 
 
 // Admin page actions
-export async function getNewsSources(): Promise<NewsSource[]> {
-    return getNewsSourcesFromDb();
-}
-
 export async function addDataSource(dataSource: Omit<DataSource, 'id' | 'createdAt'>): Promise<string> {
     return addDataSourceToDb(dataSource);
 }
@@ -134,3 +131,44 @@ export async function addSampleUsers(): Promise<void> {
 export async function getUsers(): Promise<UserProfile[]> {
     return getUsersFromDb();
 }
+
+export async function getMarketDataConfig(): Promise<Record<string, boolean>> {
+    return getMarketDataConfigFromDb();
+}
+
+export async function updateMarketDataConfig(config: Record<string, boolean>): Promise<void> {
+    return updateMarketDataConfigInDb(config);
+}
+
+export async function getScanners(): Promise<Scanner[]> {
+    return getScannersFromDb();
+}
+
+export async function saveScanner(scanner: Omit<Scanner, 'id' | 'createdAt'>): Promise<string> {
+    return saveScannerInDb(scanner);
+}
+
+export async function updateScanner(id: string, scanner: Partial<Omit<Scanner, 'id'| 'createdAt'>>): Promise<void> {
+    return updateScannerInDb(id, scanner);
+}
+
+export async function addTestDocument(): Promise<string> {
+    return addTestDocumentInDb();
+}
+
+export async function getPrompts(): Promise<Record<string, string>> {
+    return getPromptsFromDb();
+}
+
+export async function savePrompt(id: string, content: string): Promise<void> {
+    return savePromptInDb(id, content);
+}
+
+
+export type NewsSource = NewsSourceType;
+
+export async function fetchNewsFromSources(): Promise<{ importedCount: number, filteredCount: number }> {
+    return fetchNewsFromSourcesAction();
+}
+
+export { getNewsSources, addNewsSource, updateNewsSource, deleteNewsSource } from '@/app/admin/news/actions';

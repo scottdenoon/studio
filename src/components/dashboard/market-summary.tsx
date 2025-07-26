@@ -10,7 +10,7 @@ import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
-import { getNewsFeed } from '@/services/firestore';
+import { getNewsFeed as getNewsFeedAction } from '@/app/actions';
 
 type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput;
 
@@ -32,7 +32,7 @@ export default function AiBriefing({ open }: AiBriefingProps) {
     setSummary(null);
 
     try {
-      const newsItems = await getNewsFeed();
+      const newsItems = await getNewsFeedAction();
       
       let newsFeedString = "No news available.";
       if (newsItems.length > 0) {

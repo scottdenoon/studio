@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { getNewsFeed, NewsItem, getMarketDataConfig, MarketDataField } from "@/services/firestore";
+import { getNewsFeed as getNewsFeedAction, getMarketDataConfig as getMarketDataConfigAction } from "@/app/actions";
+import { NewsItem, MarketDataField } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { fetchStockData } from "@/services/market-data";
@@ -66,8 +67,8 @@ export default function RealtimeNewsFeed() {
     setLoadingFeed(true);
     try {
         const [initialNewsItems, config] = await Promise.all([
-            getNewsFeed(),
-            getMarketDataConfig()
+            getNewsFeedAction(),
+            getMarketDataConfigAction()
         ]);
         setNewsItems(initialNewsItems);
         setMarketDataConfig(config);

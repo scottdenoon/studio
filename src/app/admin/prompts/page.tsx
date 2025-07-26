@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
-import { getPrompts, savePrompt } from "@/services/firestore"
+import { getPrompts, savePrompt } from "@/app/actions"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function PromptManagementPage() {

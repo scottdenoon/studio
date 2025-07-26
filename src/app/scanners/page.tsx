@@ -6,7 +6,8 @@ import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { getScanners, Scanner, getNewsFeed, NewsItem } from '@/services/firestore';
+import { getScanners, getNewsFeed as getNewsFeedAction } from '@/app/actions';
+import { Scanner, NewsItem } from '@/services/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import ScannerCard from '@/components/scanners/scanner-card';
@@ -39,7 +40,7 @@ export default function ScannersPage() {
         try {
           const [scannerData, newsData] = await Promise.all([
             getScanners(),
-            getNewsFeed(),
+            getNewsFeedAction(),
           ]);
           setScanners(scannerData.filter(s => s.isActive));
           setNewsItems(newsData);

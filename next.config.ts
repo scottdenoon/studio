@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['firebase-admin'],
+    asyncWebAssembly: true,
+  }
 };
 
 export default nextConfig;

@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
-import { addTestDocument } from "@/services/firestore"
+import { addTestDocument } from "@/app/actions"
 
 export default function DatabaseTestPage() {
   const [loading, setLoading] = useState(false)

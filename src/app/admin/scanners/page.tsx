@@ -26,7 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, PlusCircle, Trash2, Edit, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { getScanners, saveScanner, updateScanner, Scanner } from "@/services/firestore"
+import { getScanners, saveScanner, updateScanner } from "@/app/actions"
+import { Scanner } from "@/services/firestore"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 
