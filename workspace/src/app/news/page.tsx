@@ -6,7 +6,7 @@ import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { getNewsSources, getNewsFeedAction, getMarketDataConfig } from '@/app/actions';
+import { getNewsSources, getNewsFeed, getMarketDataConfig } from '@/app/actions';
 import { NewsItem, MarketDataField } from '@/services/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -79,7 +79,7 @@ export default function NewsPage() {
     setLoading(true);
     try {
       const [news, config] = await Promise.all([
-        getNewsFeedAction(),
+        getNewsFeed(),
         getMarketDataConfig(),
       ]);
       setNewsItems(news);
