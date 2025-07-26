@@ -1,5 +1,5 @@
 
-import { fetchNewsFromSources } from '@/app/admin/news/actions';
+import { fetchNewsFromSources } from '@/app/actions';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
