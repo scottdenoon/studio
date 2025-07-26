@@ -28,7 +28,6 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
-import { useAuth } from '@/hooks/use-auth'
 
 const signupSchema = z
   .object({
@@ -48,7 +47,6 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const { setRehydratedProfile } = useAuth();
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -62,8 +60,7 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     setLoading(true)
     try {
-      const { userProfile } = await signUpWithEmailAndPasswordClient(data.email, data.password)
-      setRehydratedProfile(userProfile);
+      await signUpWithEmailAndPasswordClient(data.email, data.password)
       router.push('/')
     } catch (error: any) {
       console.error('Signup failed:', error)
@@ -72,7 +69,6 @@ export default function SignupPage() {
         title: 'Signup Failed',
         description: error.message || 'An unexpected error occurred.',
       })
-      setRehydratedProfile(null);
     } finally {
       setLoading(false)
     }
@@ -81,8 +77,7 @@ export default function SignupPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const { userProfile } = await signInWithGoogle();
-      setRehydratedProfile(userProfile);
+      await signInWithGoogle();
       router.push('/');
     } catch (error: any) {
       console.error('Google Sign-in failed:', error);
@@ -91,7 +86,6 @@ export default function SignupPage() {
         title: 'Google Sign-In Failed',
         description: error.message || 'An unexpected error occurred.',
       });
-      setRehydratedProfile(null);
     } finally {
       setGoogleLoading(false);
     }

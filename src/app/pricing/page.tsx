@@ -32,18 +32,22 @@ export default function PricingPage() {
             const res = await fetch('/api/stripe/checkout-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID }),
+                body: JSON.stringify({ 
+                    priceId: plans[billingCycle].priceId,
+                    userId: user.uid 
+                }),
             })
 
-            const { sessionId } = await res.json()
+            const { sessionId, error } = await res.json()
+            if (error) throw new Error(error)
             if (!sessionId) throw new Error("Could not create checkout session.")
 
             const stripe = await stripePromise
             if (!stripe) throw new Error("Stripe.js failed to load.")
 
-            const { error } = await stripe.redirectToCheckout({ sessionId })
-            if (error) {
-                toast({ variant: "destructive", title: "Error", description: error.message })
+            const { error: stripeError } = await stripe.redirectToCheckout({ sessionId })
+            if (stripeError) {
+                toast({ variant: "destructive", title: "Error", description: stripeError.message })
             }
         } catch (error: any) {
             toast({ variant: "destructive", title: "Error", description: error.message })

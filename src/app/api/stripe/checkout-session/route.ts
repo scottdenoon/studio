@@ -3,16 +3,21 @@
 import { headers } from 'next/headers'
 import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe'
 import { auth } from '@/lib/firebase/client';
+import { getUser } from '@/services/firestore';
 
 export async function POST(req: Request) {
-    const { priceId } = await req.json();
+    const { priceId, userId } = await req.json();
 
-    const user = auth.currentUser;
-    if (!user) {
+    if (!userId) {
         return new Response(JSON.stringify({ error: 'User must be logged in to subscribe.' }), { status: 401 });
     }
 
     try {
+        const user = await getUser(userId);
+        if (!user) {
+             return new Response(JSON.stringify({ error: 'User not found.' }), { status: 404 });
+        }
+
         const customerId = await createOrRetrieveCustomer({
             userId: user.uid,
             email: user.email!,
