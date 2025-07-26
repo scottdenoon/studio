@@ -12,7 +12,8 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
-import { getFeatureFlags, updateFeatureFlag, FeatureFlag } from "@/services/firestore"
+import { getFeatureFlags, updateFeatureFlag } from "@/app/actions"
+import { FeatureFlag } from "@/services/firestore"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Info } from "lucide-react"
 

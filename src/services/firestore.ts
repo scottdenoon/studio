@@ -1,5 +1,4 @@
 
-
 // IMPORTANT: This file is for SERVER-SIDE code only. Do not import it into client components.
 // For calling server functions from the client, use the actions defined in 'src/app/actions.ts'.
 
@@ -9,6 +8,7 @@ import { fetchStockData } from "@/services/market-data";
 import { StockDataSchema } from "@/lib/types";
 import { logActivity } from "@/services/logging";
 import { z } from "zod";
+import { NewsSource } from "@/app/admin/news/actions";
 
 // --- Prompt Management ---
 
@@ -499,6 +499,23 @@ export async function addDataSource(dataSource: Omit<DataSource, 'id' | 'created
 export async function updateDataSource(id: string, dataSource: Partial<Omit<DataSource, 'id' | 'createdAt'>>): Promise<void> {
     await db.collection('data_sources').doc(id).update(dataSource);
     await logActivity("INFO", `Data source "${dataSource.name || 'N/A'}" updated.`, { id });
+}
+
+
+export async function getNewsSources(): Promise<NewsSource[]> {
+    const newsSourceCol = db.collection('news_sources');
+    const snapshot = await newsSourceCol.get();
+    const newsSources: NewsSource[] = [];
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        newsSources.push({
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt.toDate().toISOString(),
+        } as NewsSource);
+    });
+    newsSources.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return newsSources;
 }
 
 // --- Feature Flag Management ---

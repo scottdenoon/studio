@@ -46,9 +46,9 @@ import {
   addNewsSource,
   getNewsSources,
   updateNewsSource,
-  NewsSource,
   fetchNewsFromSources,
 } from "./actions"
+import { NewsSource } from "./actions"
 import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -139,10 +139,10 @@ export default function NewsSourceManagementPage() {
   });
 
   useEffect(() => {
-    fetchNewsSources()
+    fetchSources()
   }, [])
 
-  const fetchNewsSources = async () => {
+  const fetchSources = async () => {
     setLoadingNewsSources(true)
     try {
       const fetchedNewsSources = await getNewsSources()
@@ -181,7 +181,7 @@ export default function NewsSourceManagementPage() {
         title: "Status Updated",
         description: `${source.name} has been ${!source.isActive ? 'activated' : 'deactivated'}.`,
       })
-      fetchNewsSources()
+      fetchSources()
     } catch (error) {
       console.error("Error toggling status:", error)
       toast({
@@ -199,8 +199,8 @@ export default function NewsSourceManagementPage() {
       fieldMapping: source.fieldMapping || [],
       isFieldMappingEnabled: source.isFieldMappingEnabled || false,
       filters: {
-        includeKeywords: source.filters?.includeKeywords?.map(v => ({value: v})) || [],
-        excludeKeywords: source.filters?.excludeKeywords?.map(v => ({value: v})) || []
+        includeKeywords: source.filters?.includeKeywords?.map(v => ({value: v as any})) || [],
+        excludeKeywords: source.filters?.excludeKeywords?.map(v => ({value: v as any})) || []
       }
     })
   }
@@ -247,7 +247,7 @@ export default function NewsSourceManagementPage() {
         })
       }
       handleCancelEdit()
-      fetchNewsSources()
+      fetchSources()
     } catch (error) {
       console.error("Error saving news source:", error)
       toast({

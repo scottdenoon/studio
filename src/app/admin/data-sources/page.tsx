@@ -42,8 +42,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { addDataSource, getDataSources, updateDataSource, DataSource } from "@/services/firestore"
+import { addDataSource, getDataSources, updateDataSource } from "@/app/actions"
 import { Separator } from "@/components/ui/separator"
+import { DataSource } from "@/services/firestore"
 
 const dataSourceSchema = z.object({
   name: z.string().min(3, "Name is required"),

@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, UserPlus, Info } from "lucide-react";
-import { getUsers, UserProfile, addSampleUsers } from "@/services/firestore";
+import { getUsers, addSampleUsers } from "@/app/actions";
+import { UserProfile } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";

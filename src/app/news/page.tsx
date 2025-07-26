@@ -142,9 +142,9 @@ export default function NewsPage() {
         };
       };
 
-      const cleanup = connectWebSocket();
+      const cleanupPromise = connectWebSocket();
       return () => {
-          cleanup.then(fn => fn && fn());
+          cleanupPromise.then(cleanup => cleanup && cleanup());
       }
     }
   }, [user, authLoading, router, fetchNews]);

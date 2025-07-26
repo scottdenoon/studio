@@ -2,7 +2,7 @@
 'use server';
 
 import { db, Timestamp } from "@/lib/firebase/server";
-import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser } from '@/services/firestore';
+import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, getNewsSources as getNewsSourcesFromDb, NewsSource, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb } from '@/services/firestore';
 import { logActivity } from "@/services/logging";
 import { fetchStockData } from "@/services/market-data";
 
@@ -19,8 +19,8 @@ export async function getJournalEntriesAction(
   return getJournalEntriesFromDb(userId);
 }
 
-export async function getUserAction(uid: string) {
-    return getUser(uid);
+export async function getUserAction(uid: string): Promise<UserProfile | null> {
+    return getUserFromDb(uid);
 }
 
 export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<void> {
@@ -99,4 +99,38 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     const { userId, ticker } = doc.data()!;
     await docRef.delete();
     await logActivity("INFO", `User ${userId} deleted journal entry for ${ticker}.`, { id });
+}
+
+
+// Admin page actions
+export async function getNewsSources(): Promise<NewsSource[]> {
+    return getNewsSourcesFromDb();
+}
+
+export async function addDataSource(dataSource: Omit<DataSource, 'id' | 'createdAt'>): Promise<string> {
+    return addDataSourceToDb(dataSource);
+}
+
+export async function getDataSources(): Promise<DataSource[]> {
+    return getDataSourcesFromDb();
+}
+
+export async function updateDataSource(id: string, dataSource: Partial<Omit<DataSource, 'id' | 'createdAt'>>): Promise<void> {
+    return updateDataSourceInDb(id, dataSource);
+}
+
+export async function getFeatureFlags(): Promise<FeatureFlag[]> {
+    return getFeatureFlagsFromDb();
+}
+
+export async function updateFeatureFlag(id: string, enabled: boolean): Promise<void> {
+    return updateFeatureFlagInDb(id, enabled);
+}
+
+export async function addSampleUsers(): Promise<void> {
+    return addSampleUsersToDb();
+}
+
+export async function getUsers(): Promise<UserProfile[]> {
+    return getUsersFromDb();
 }

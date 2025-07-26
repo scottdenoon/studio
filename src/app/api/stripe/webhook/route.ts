@@ -1,8 +1,9 @@
 
 'use server'
-import { stripe } from '@/services/stripe'
+import { stripe } from '@/lib/firebase/server'
 import { updateUserRole } from '@/services/firestore'
 import { logActivity } from '@/services/logging'
+import { headers } from 'next/headers'
 
 export async function POST(req: Request) {
     const body = await req.text()
