@@ -1,5 +1,4 @@
 
-'use server'
 import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe'
 import { getUser } from '@/services/firestore';
 

@@ -1,8 +1,8 @@
+// src/services/stripe.ts
 
-"use server"
-
-import { stripe } from '@/lib/firebase/server'
-import { db } from '@/lib/firebase/server'
+// REMOVE THIS LINE: import { stripe } from '@/lib/firebase/server'
+// Keep the db import if you use db in this file, otherwise remove it too.
+import { db, stripe } from '@/lib/firebase/server' // Keep this if you use 'db' below
 
 // --- Customer Management ---
 export async function createOrRetrieveCustomer({ userId, email }: { userId: string, email: string }): Promise<string> {
