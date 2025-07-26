@@ -7,7 +7,7 @@ import { logActivity } from '@/services/logging'
 
 export async function POST(req: Request) {
     const body = await req.text()
-    const signature = headers().get('Stripe-Signature') as string
+    const signature = req.headers.get('Stripe-Signature') as string
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
     let event;
@@ -38,3 +38,4 @@ export async function POST(req: Request) {
 
     return new Response(JSON.stringify({ received: true }), { status: 200 });
 }
+
