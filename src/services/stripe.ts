@@ -1,13 +1,8 @@
 
 "use server"
 
-import Stripe from 'stripe'
+import { stripe } from '@/lib/firebase/server'
 import { db } from '@/lib/firebase/server'
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-06-20',
-    typescript: true,
-})
 
 // --- Customer Management ---
 export async function createOrRetrieveCustomer({ userId, email }: { userId: string, email: string }): Promise<string> {
