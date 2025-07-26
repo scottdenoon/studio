@@ -7,7 +7,6 @@ import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { getNewsSources, getNewsFeed, getMarketDataConfig } from '@/app/actions';
-import { NewsItem, MarketDataField } from '@/services/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -25,6 +24,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { fetchStockData } from '@/services/market-data';
+import { NewsItem, MarketDataField } from '@/services/firestore';
 
 
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {

@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 export const StockDataSchema = z.object({
@@ -32,4 +33,14 @@ export interface NewsSource {
   isFieldMappingEnabled?: boolean;
   frequency?: number;
   filters?: NewsSourceFilters;
+}
+
+export interface AlertItem {
+    id?: string;
+    userId: string;
+    ticker: string;
+    priceAbove?: number;
+    priceBelow?: number;
+    momentum?: string;
+    createdAt: string;
 }

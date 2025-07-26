@@ -7,7 +7,6 @@ import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { getScanners, getNewsFeed } from '@/app/actions';
-import { Scanner, NewsItem } from '@/services/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import ScannerCard from '@/components/scanners/scanner-card';
@@ -16,6 +15,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import AiBriefing from '@/components/dashboard/market-summary';
 import PromoBanner from '@/components/premium/promo-banner';
+import { Scanner, NewsItem } from '@/services/firestore';
 
 export default function ScannersPage() {
   const { user, userProfile, loading: authLoading } = useAuth();

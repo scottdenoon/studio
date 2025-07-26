@@ -56,16 +56,6 @@ export async function removeWatchlistItem(id: string): Promise<void> {
     await logActivity("INFO", `User ${userId} removed "${ticker}" from watchlist.`);
 }
 
-export interface AlertItem {
-    id?: string;
-    userId: string;
-    ticker: string;
-    priceAbove?: number;
-    priceBelow?: number;
-    momentum?: string;
-    createdAt: string;
-}
-
 export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promise<string> {
     const docRef = await db.collection("alerts").add({
         ...item,
