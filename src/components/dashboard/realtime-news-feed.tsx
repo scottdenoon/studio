@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchStockData } from "@/services/market-data";
-import { Separator } from "../ui/separator";
+import { Separator } from "@/components/ui/separator";
 
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
