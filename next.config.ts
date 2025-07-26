@@ -14,8 +14,14 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['firebase-admin'],
-    asyncWebAssembly: true,
+    // Remove or move these options
+  },
+  serverExternalPackages: ['firebase-admin'], // if needed
+  webpack(config) {
+    config.experiments = {
+      asyncWebAssembly: true,
+    };
+    return config;
   }
 };
 

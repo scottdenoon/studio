@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { getNewsFeed, getMarketDataConfig } from "@/app/actions";
 import { NewsItem, MarketDataField } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "../ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchStockData } from "@/services/market-data";
 
 

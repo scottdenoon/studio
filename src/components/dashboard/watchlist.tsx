@@ -45,8 +45,8 @@ import { Input } from "@/components/ui/input"
 import { WatchlistItem } from "@/services/firestore"
 import { addWatchlistItem, removeWatchlistItem, addAlert, getWatchlistAction } from "@/app/actions"
 import { useToast } from "@/hooks/use-toast"
-import { Skeleton } from "../ui/skeleton"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { useAuth } from "@/hooks/use-auth"
 
 

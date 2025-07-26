@@ -7,8 +7,8 @@ import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flo
 import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
-import { Separator } from '../ui/separator';
-import { Button } from '../ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getNewsFeed } from '@/app/actions';
 
