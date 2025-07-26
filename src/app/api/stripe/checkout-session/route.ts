@@ -2,7 +2,6 @@
 'use server'
 import { headers } from 'next/headers'
 import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe'
-import { auth } from '@/lib/firebase/client';
 import { getUser } from '@/services/firestore';
 
 export async function POST(req: Request) {
@@ -23,7 +22,8 @@ export async function POST(req: Request) {
             email: user.email!,
         });
 
-        const origin = headers().get('origin') || 'http://localhost:3000';
+        const headersList = headers();
+        const origin = headersList.get('origin') || 'http://localhost:3000';
         const session = await createCheckoutSession({
             customerId,
             priceId,
