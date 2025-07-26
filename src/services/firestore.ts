@@ -1,6 +1,5 @@
 
 
-
 "use server"
 
 import { db, Timestamp } from "@/lib/firebase/server";
@@ -175,7 +174,6 @@ export async function getWatchlist(
 
   const watchlist: WatchlistItem[] = [];
   settledPromises.forEach((result) => {
-    // Check for fulfilled status and ensure the stock data is not a zeroed-out error object
     if (result.status === 'fulfilled' && result.value && result.value.price > 0) {
       watchlist.push(result.value);
     } else if (result.status === 'rejected') {
