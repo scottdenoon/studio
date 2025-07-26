@@ -1,6 +1,7 @@
 
 
-"use server"
+// IMPORTANT: This file is for SERVER-SIDE code only. Do not import it into client components.
+// For calling server functions from the client, use the actions defined in 'src/app/actions.ts'.
 
 import { db, Timestamp } from "@/lib/firebase/server";
 import { AnalyzeNewsSentimentOutput } from "@/ai/flows/analyze-news-sentiment";
@@ -183,33 +184,6 @@ export async function getWatchlist(
 
   return watchlist;
 }
-
-export async function addWatchlistItem(item: {ticker: string, userId: string}): Promise<void> {
-    const stockData = await fetchStockData({ ticker: item.ticker });
-    
-    if (stockData.price === 0 && stockData.volume === 0) {
-        await logActivity("WARN", `User ${item.userId} failed to add invalid ticker "${item.ticker}" to watchlist.`);
-        throw new Error(`Could not find a valid stock for ticker "${item.ticker}". Please check the symbol and try again.`);
-    }
-
-    const newWatchlistItem = {
-        ticker: item.ticker.toUpperCase(),
-        userId: item.userId,
-    };
-
-    await db.collection("watchlist").add(newWatchlistItem);
-    await logActivity("INFO", `User ${item.userId} added "${item.ticker}" to watchlist.`);
-}
-
-export async function removeWatchlistItem(id: string): Promise<void> {
-    const docRef = db.collection("watchlist").doc(id);
-    const doc = await docRef.get();
-    if (!doc.exists) return;
-    const { userId, ticker } = doc.data()!;
-    await docRef.delete();
-    await logActivity("INFO", `User ${userId} removed "${ticker}" from watchlist.`);
-}
-
 
 // --- News Feed Management ---
 
@@ -438,27 +412,6 @@ export async function addSampleUsers(): Promise<void> {
 }
 
 
-// --- Alert Management ---
-export interface AlertItem {
-    id?: string;
-    userId: string;
-    ticker: string;
-    priceAbove?: number;
-    priceBelow?: number;
-    momentum?: string;
-    createdAt: string;
-}
-
-export async function addAlert(item: Omit<AlertItem, 'id' | 'createdAt'>): Promise<string> {
-    const docRef = await db.collection("alerts").add({
-        ...item,
-        createdAt: Timestamp.now(),
-    });
-    await logActivity("INFO", `User ${item.userId} set alert for ${item.ticker}.`, { id: docRef.id });
-    return docRef.id;
-}
-
-
 // --- Scanner Management ---
 export interface Scanner {
     id?: string;
@@ -651,38 +604,6 @@ export async function getJournalEntries(userId: string): Promise<TradeJournalEnt
     });
     entries.sort((a,b) => new Date(b.entryDate).getTime() - new Date(a.entryDate).getTime());
     return entries;
-}
-
-export async function addJournalEntry(entry: TradeJournalEntryCreate): Promise<string> {
-    const docRef = await db.collection('trade_journal').add({
-        ...entry,
-        entryDate: Timestamp.fromDate(new Date(entry.entryDate)),
-        exitDate: Timestamp.fromDate(new Date(entry.exitDate)),
-        createdAt: Timestamp.now(),
-    });
-    await logActivity("INFO", `User ${entry.userId} added journal entry for ${entry.ticker}.`, { id: docRef.id });
-    return docRef.id;
-}
-
-export async function updateJournalEntry(id: string, entry: Partial<TradeJournalEntryCreate>): Promise<void> {
-    const updatedData: Record<string, any> = { ...entry };
-    if (entry.entryDate) {
-        updatedData.entryDate = Timestamp.fromDate(new Date(entry.entryDate));
-    }
-    if (entry.exitDate) {
-        updatedData.exitDate = Timestamp.fromDate(new Date(entry.exitDate));
-    }
-    await db.collection('trade_journal').doc(id).update(updatedData);
-    await logActivity("INFO", `Journal entry ${id} updated.`, { ticker: entry.ticker });
-}
-
-export async function deleteJournalEntry(id: string): Promise<void> {
-    const docRef = db.collection("trade_journal").doc(id);
-    const doc = await docRef.get();
-    if (!doc.exists) return;
-    const { userId, ticker } = doc.data()!;
-    await docRef.delete();
-    await logActivity("INFO", `User ${userId} deleted journal entry for ${ticker}.`, { id });
 }
 
 

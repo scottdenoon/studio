@@ -11,12 +11,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
 import {
-  addWatchlistItem,
-  removeWatchlistItem,
-  WatchlistItem,
-  addAlert
+  WatchlistItem
 } from '@/services/firestore';
-import { getWatchlistAction } from '@/app/actions';
+import { getWatchlistAction, addWatchlistItem, removeWatchlistItem, addAlert } from '@/app/actions';
 
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';

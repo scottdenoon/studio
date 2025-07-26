@@ -12,13 +12,15 @@ import { z } from "zod";
 import { format } from "date-fns";
 
 import {
-  addJournalEntry,
-  updateJournalEntry,
-  deleteJournalEntry,
   TradeJournalEntry,
   TradeJournalEntryCreate
 } from '@/services/firestore';
-import { getJournalEntriesAction } from '@/app/actions';
+import { 
+    getJournalEntriesAction, 
+    addJournalEntry,
+    updateJournalEntry,
+    deleteJournalEntry
+} from '@/app/actions';
 import { summarizeJournalTrades } from '@/ai/flows/summarize-journal-trades';
 
 

@@ -1,6 +1,9 @@
 
-import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe'
+'use server';
+
+import { createOrRetrieveCustomer, createCheckoutSession } from '@/services/stripe';
 import { getUser } from '@/services/firestore';
+import { headers } from 'next/headers';
 
 export async function POST(req: Request) {
     const { priceId, userId } = await req.json();

@@ -42,12 +42,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { addWatchlistItem, removeWatchlistItem, addAlert, WatchlistItem } from "@/services/firestore"
+import { WatchlistItem } from "@/services/firestore"
+import { addWatchlistItem, removeWatchlistItem, addAlert, getWatchlistAction } from "@/app/actions"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "../ui/skeleton"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { useAuth } from "@/hooks/use-auth"
-import { getWatchlistAction } from "@/app/actions"
 
 
 const watchlistSchema = z.object({

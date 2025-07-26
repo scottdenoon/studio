@@ -5,7 +5,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useRouter } from 'next/navigation';
-import { UserProfile, getUser } from '@/services/firestore';
+import { UserProfile } from '@/services/firestore';
+import { getUserAction } from '@/app/actions';
 
 interface AuthContextType {
   user: User | null;
@@ -31,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        const profile = await getUser(user.uid);
+        const profile = await getUserAction(user.uid);
         setUserProfile(profile);
       } else {
         setUserProfile(null);
