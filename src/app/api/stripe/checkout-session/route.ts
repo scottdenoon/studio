@@ -22,7 +22,7 @@ export async function POST(req: Request) {
             email: user.email!,
         });
 
-        const origin = headers().get('origin') || 'http://localhost:3000';
+        const origin = req.headers.get('origin') || 'http://localhost:3000';
         const session = await createCheckoutSession({
             customerId,
             priceId,
