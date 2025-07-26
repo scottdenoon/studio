@@ -16,13 +16,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Newspaper, ChevronDown, TrendingUp, BarChart2, Users, FileText, Bot, Loader2, AlertTriangle, Minus, TrendingDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Separator } from '../ui/separator';
-import { Button } from '../ui/button';
 import { getNewsFeed, getMarketDataConfig } from "@/app/actions";
 import { NewsItem, MarketDataField } from "@/services/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fetchStockData } from "@/services/market-data";
+import { Separator } from "../ui/separator";
 
 
 const MomentumIndicator = ({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string | number }) => (
