@@ -6,7 +6,7 @@ import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { getNewsSources, getNewsFeedAction, getMarketDataConfig } from '@/app/actions';
+import { getNewsSources, getNewsFeed, getMarketDataConfig } from '@/app/actions';
 import { NewsItem, MarketDataField } from '@/services/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -75,11 +75,11 @@ export default function NewsPage() {
     { id: 'priceAction', label: 'Price Action', description: 'Description of recent price movement.' },
   ];
 
-  const fetchNews = useCallback(async () => {
+  const fetchNewsAndConfig = useCallback(async () => {
     setLoading(true);
     try {
       const [news, config] = await Promise.all([
-        getNewsFeedAction(),
+        getNewsFeed(),
         getMarketDataConfig(),
       ]);
       setNewsItems(news);
@@ -102,7 +102,7 @@ export default function NewsPage() {
       return;
     } 
     if (user) {
-      fetchNews();
+      fetchNewsAndConfig();
 
       const connectWebSocket = async () => {
         const sources = await getNewsSources();
@@ -146,7 +146,7 @@ export default function NewsPage() {
           cleanupPromise.then(cleanup => cleanup && cleanup());
       }
     }
-  }, [user, authLoading, router, fetchNews]);
+  }, [user, authLoading, router, fetchNewsAndConfig]);
 
   const filteredNews = useMemo(() => {
     return newsItems
