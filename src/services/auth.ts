@@ -10,7 +10,8 @@ import {
     signOut,
     type User
 } from 'firebase/auth';
-import { addUserProfile, UserProfile } from './firestore';
+import { UserProfile, NewUserProfile } from './firestore';
+import { addUserProfileAction } from '@/app/actions';
 
 interface AuthResult {
     user: User;
@@ -21,7 +22,7 @@ export async function signUpWithEmailAndPasswordClient(email: string, password: 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     
-    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid });
+    const userProfile = await addUserProfileAction({ email: user.email!, uid: user.uid });
 
     return { user, userProfile };
 }
@@ -29,7 +30,7 @@ export async function signUpWithEmailAndPasswordClient(email: string, password: 
 export async function signInWithEmailAndPasswordClient(email: string, password: string): Promise<AuthResult> {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
-    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid });
+    const userProfile = await addUserProfileAction({ email: user.email!, uid: user.uid });
     return { user, userProfile };
 }
 
@@ -38,7 +39,7 @@ export async function signInWithGoogle(): Promise<AuthResult> {
     const userCredential = await signInWithPopup(auth, provider);
     const user = userCredential.user;
 
-    const userProfile = await addUserProfile({ email: user.email!, uid: user.uid, photoURL: user.photoURL });
+    const userProfile = await addUserProfileAction({ email: user.email!, uid: user.uid, photoURL: user.photoURL });
     
     return { user, userProfile };
 }

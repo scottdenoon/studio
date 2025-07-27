@@ -289,48 +289,6 @@ export interface NewUserProfile {
     photoURL?: string | null;
 }
 
-export async function addUserProfile(data: NewUserProfile): Promise<UserProfile> {
-    const userRef = db.collection("users").doc(data.uid);
-    const userDoc = await userRef.get();
-    const now = Timestamp.now();
-    
-    let userProfileData: Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
-
-    if (userDoc.exists) {
-        const existingData = userDoc.data()!;
-        const updateData = { 
-            lastSeen: now,
-            photoURL: data.photoURL || existingData.photoURL || undefined
-        };
-        await userRef.update(updateData);
-        await logActivity("INFO", `User signed in: ${data.email}`, { uid: data.uid });
-        userProfileData = { ...existingData, ...updateData } as Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
-    } else {
-        const usersCol = db.collection('users');
-        const userSnapshot = await usersCol.get();
-        const isFirstUser = userSnapshot.empty;
-        const role = isFirstUser ? 'admin' : 'basic';
-
-        userProfileData = {
-            email: data.email,
-            uid: data.uid,
-            photoURL: data.photoURL || undefined,
-            role: role,
-            createdAt: now,
-            lastSeen: now,
-        };
-        
-        await userRef.set(userProfileData);
-        await logActivity("INFO", `New user profile created: ${data.email}`, { uid: data.uid, role });
-    }
-    
-    return {
-        ...userProfileData,
-        createdAt: userProfileData.createdAt.toDate().toISOString(),
-        lastSeen: userProfileData.lastSeen.toDate().toISOString(),
-    };
-}
-
 export async function updateUserRole(stripeCustomerId: string, role: 'premium' | 'basic'): Promise<void> {
     const usersRef = db.collection('users');
     const q = usersRef.where('stripeCustomerId', '==', stripeCustomerId).limit(1);

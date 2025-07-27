@@ -2,7 +2,7 @@
 'use server';
 
 import { db, Timestamp } from "@/lib/firebase/server";
-import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb, getMarketDataConfig as getMarketDataConfigFromDb, updateMarketDataConfig as updateMarketDataConfigInDb, getScanners as getScannersFromDb, saveScanner as saveScannerInDb, updateScanner as updateScannerInDb, Scanner, addTestDocument as addTestDocumentInDb, getPrompts as getPromptsFromDb, savePrompt as savePromptInDb, getNewsFeed as getNewsFeedFromDb, addNewsItem as addNewsItemToDb, saveNewsItemAnalysis as saveNewsItemAnalysisToDb, AlertItem } from '@/services/firestore';
+import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb, getMarketDataConfig as getMarketDataConfigFromDb, updateMarketDataConfig as updateMarketDataConfigInDb, getScanners as getScannersFromDb, saveScanner as saveScannerInDb, updateScanner as updateScannerInDb, Scanner, addTestDocument as addTestDocumentInDb, getPrompts as getPromptsFromDb, savePrompt as savePromptInDb, getNewsFeed as getNewsFeedFromDb, addNewsItem as addNewsItemToDb, saveNewsItemAnalysis as saveNewsItemAnalysisToDb, AlertItem, NewUserProfile } from '@/services/firestore';
 import { logActivity } from "@/services/logging";
 import { fetchStockData } from "@/services/market-data";
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
@@ -25,6 +25,49 @@ export async function getJournalEntriesAction(
 export async function getUserAction(uid: string): Promise<UserProfile | null> {
     return getUserFromDb(uid);
 }
+
+export async function addUserProfileAction(data: NewUserProfile): Promise<UserProfile> {
+    const userRef = db.collection("users").doc(data.uid);
+    const userDoc = await userRef.get();
+    const now = Timestamp.now();
+    
+    let userProfileData: Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
+
+    if (userDoc.exists) {
+        const existingData = userDoc.data()!;
+        const updateData = { 
+            lastSeen: now,
+            photoURL: data.photoURL || existingData.photoURL || undefined
+        };
+        await userRef.update(updateData);
+        await logActivity("INFO", `User signed in: ${data.email}`, { uid: data.uid });
+        userProfileData = { ...existingData, ...updateData } as Omit<UserProfile, 'createdAt' | 'lastSeen'> & { createdAt: Timestamp, lastSeen: Timestamp };
+    } else {
+        const usersCol = db.collection('users');
+        const userSnapshot = await usersCol.get();
+        const isFirstUser = userSnapshot.empty;
+        const role = isFirstUser ? 'admin' : 'basic';
+
+        userProfileData = {
+            email: data.email,
+            uid: data.uid,
+            photoURL: data.photoURL || undefined,
+            role: role,
+            createdAt: now,
+            lastSeen: now,
+        };
+        
+        await userRef.set(userProfileData);
+        await logActivity("INFO", `New user profile created: ${data.email}`, { uid: data.uid, role });
+    }
+    
+    return {
+        ...userProfileData,
+        createdAt: userProfileData.createdAt.toDate().toISOString(),
+        lastSeen: userProfileData.lastSeen.toDate().toISOString(),
+    };
+}
+
 
 export async function getNewsFeed(): Promise<any[]> {
     return getNewsFeedFromDb();
