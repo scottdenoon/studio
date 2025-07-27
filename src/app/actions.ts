@@ -2,12 +2,12 @@
 'use server';
 
 import { db, Timestamp } from "@/lib/firebase/server";
-import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb, getMarketDataConfig as getMarketDataConfigFromDb, updateMarketDataConfig as updateMarketDataConfigInDb, getScanners as getScannersFromDb, saveScanner as saveScannerInDb, updateScanner as updateScannerInDb, Scanner, addTestDocument as addTestDocumentInDb, getPrompts as getPromptsFromDb, savePrompt as savePromptInDb, getNewsFeed as getNewsFeedFromDb, addNewsItem as addNewsItemToDb, saveNewsItemAnalysis as saveNewsItemAnalysisToDb, AlertItem, NewUserProfile } from '@/services/firestore';
+import { getWatchlist as getWatchlistFromDb, getJournalEntries as getJournalEntriesFromDb, WatchlistItem, TradeJournalEntry, TradeJournalEntryCreate, getUser as getUserFromDb, UserProfile, addDataSource as addDataSourceToDb, getDataSources as getDataSourcesFromDb, updateDataSource as updateDataSourceInDb, DataSource, FeatureFlag, getFeatureFlags as getFeatureFlagsFromDb, updateFeatureFlag as updateFeatureFlagInDb, addSampleUsers as addSampleUsersToDb, getUsers as getUsersFromDb, getMarketDataConfig as getMarketDataConfigFromDb, updateMarketDataConfig as updateMarketDataConfigInDb, getScanners as getScannersFromDb, saveScanner as saveScannerInDb, updateScanner as updateScannerInDb, Scanner, addTestDocument as addTestDocumentInDb, getPrompts as getPromptsFromDb, savePrompt as savePromptInDb, getNewsFeed as getNewsFeedFromDb, addNewsItem as addNewsItemToDb, saveNewsItemAnalysis as saveNewsItemAnalysisToDb, NewUserProfile } from '@/services/firestore';
 import { logActivity } from "@/services/logging";
 import { fetchStockData } from "@/services/market-data";
 import { analyzeNewsSentiment } from "@/ai/flows/analyze-news-sentiment";
 import { ingestNewsData, IngestNewsDataInput } from "@/ai/flows/ingest-news-data";
-import { NewsSource, NewsSourceFilters } from "@/lib/types";
+import { NewsSource, NewsSourceFilters, AlertItem } from "@/lib/types";
 
 
 export async function getWatchlistAction(
