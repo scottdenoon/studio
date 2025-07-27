@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getNewsFeed } from '@/app/actions';
+import { Separator } from '@/components/ui/separator';
 
 type SummaryOutput = SummarizeMarketTrendsOutput | SummarizeMomentumTrendsOutput;
 
