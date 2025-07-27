@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
+import { type WebpackConfig } from "next/dist/server/config-shared";
+
 const nextConfig = {
-  webpack: (config) => {
+  webpack: (config: WebpackConfig) => {
     config.experiments = {
       ...config.experiments,
       layers: true, // ✅ Enable layers
