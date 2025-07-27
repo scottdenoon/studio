@@ -21,6 +21,12 @@ import AiBriefing from '@/components/dashboard/market-summary';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import Link from 'next/link';
 
+interface StockDetailPageProps {
+    params: {
+        ticker: string;
+    }
+}
+
 const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentiment: string; impactScore: number, showText?: boolean }) => {
     const commonClasses = "text-xs";
     if (sentiment.toLowerCase() === 'positive') {
@@ -32,7 +38,7 @@ const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentim
     return <Badge variant="secondary" className={cn(commonClasses)}><Minus className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Neutral (${impactScore})`}</Badge>;
 };
 
-export default function StockDetailPage({ params }: { params: { ticker: string } }) {
+export default function StockDetailPage({ params }: StockDetailPageProps) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
