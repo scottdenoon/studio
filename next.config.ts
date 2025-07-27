@@ -8,9 +8,6 @@ const nextConfig = {
     };
     return config;
   },
-  experimental: {
-    // Remove or move these options
-  },
   serverExternalPackages: ['firebase-admin'], // if needed
 };
 
