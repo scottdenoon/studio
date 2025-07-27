@@ -20,7 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Scanner, NewsItem } from '@/services/firestore';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Info } from 'lucide-react';
 import { fetchStockData, StockData } from '@/services/market-data';
 
