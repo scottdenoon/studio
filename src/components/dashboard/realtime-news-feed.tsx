@@ -149,7 +149,9 @@ export default function RealtimeNewsFeed() {
                             <div className="flex justify-between items-start">
                                 <div className="flex items-start gap-3 flex-1">
                                     <div className="flex flex-col items-center gap-1">
-                                        <Badge variant="outline" className="text-base py-1 px-3">{news.ticker}</Badge>
+                                        <Link href={`/stock/${news.ticker}`}>
+                                            <Badge variant="outline" className="text-base py-1 px-3 hover:bg-accent">{news.ticker}</Badge>
+                                        </Link>
                                         {news.analysis ? (
                                             <SentimentDisplay sentiment={news.analysis.sentiment} impactScore={news.analysis.impactScore} />
                                         ) : (

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Link from 'next/link';
 
 import {
   WatchlistItem
@@ -272,7 +273,11 @@ export default function WatchlistPage() {
                         ) : (
                             watchlist.map(stock => (
                                 <TableRow key={stock.id}>
-                                    <TableCell><Badge variant="outline">{stock.ticker}</Badge></TableCell>
+                                    <TableCell>
+                                        <Link href={`/stock/${stock.ticker}`}>
+                                            <Badge variant="outline" className="hover:bg-accent">{stock.ticker}</Badge>
+                                        </Link>
+                                    </TableCell>
                                     <TableCell className="font-medium">{stock.name}</TableCell>
                                     <TableCell>${stock.price.toFixed(2)}</TableCell>
                                     <TableCell className={cn(stock.change >= 0 ? 'text-green-600' : 'text-red-600')}>

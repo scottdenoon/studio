@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -144,7 +145,9 @@ export default function ScannerCard({ scanner, allNews }: ScannerCardProps) {
                                 matchedStocks.map((stock) => (
                                     <TableRow key={stock.id}>
                                         <TableCell>
-                                            <Badge variant="outline" className="font-semibold">{stock.ticker}</Badge>
+                                            <Link href={`/stock/${stock.ticker}`}>
+                                                <Badge variant="outline" className="font-semibold hover:bg-accent">{stock.ticker}</Badge>
+                                            </Link>
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-sm">${stock.stockData?.price.toFixed(2)}</TableCell>
                                         <TableCell className={`text-right font-mono text-sm ${stock.stockData && stock.stockData.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>

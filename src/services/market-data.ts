@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { StockDataSchema } from '@/lib/types';
 import { logActivity } from './logging';
+import { format } from 'date-fns';
 
 export type StockData = z.infer<typeof StockDataSchema>;
 
@@ -83,5 +84,35 @@ export async function fetchStockData({ ticker }: { ticker: string }): Promise<St
             changePercent: 0,
             volume: 0,
         };
+    }
+}
+
+export async function fetchStockHistory({ ticker, from, to }: { ticker: string, from: string, to: string }): Promise<any[]> {
+    const apiKey = process.env.POLYGON_API_KEY;
+    try {
+        if (!apiKey) {
+            throw new Error('POLYGON_API_KEY is not configured in the environment.');
+        }
+
+        const fromDate = format(new Date(from), 'yyyy-MM-dd');
+        const toDate = format(new Date(to), 'yyyy-MM-dd');
+
+        const response = await fetch(`https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&apiKey=${apiKey}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            await logActivity("ERROR", `Could not fetch historical data for ${ticker}`, { error: errorText });
+            return [];
+        }
+
+        const data = await response.json();
+        return data.results?.map((d: any) => ({
+            date: format(new Date(d.t), "MMM d"),
+            price: d.c,
+        })) || [];
+        
+    } catch (error) {
+        await logActivity("ERROR", `[fetchStockHistory Service Error] for ${ticker}`, { error: (error as Error).message });
+        return [];
     }
 }
