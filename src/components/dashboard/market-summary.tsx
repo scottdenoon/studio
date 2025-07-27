@@ -2,14 +2,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { summarizeMarketTrends, SummarizeMarketTrendsOutput } from '@/ai/flows/summarize-market-trends';
+import { summarizeMarketrends, SummarizeMarketTrendsOutput } from '@/ai/flows/summarize-market-trends';
 import { summarizeMomentumTrends, SummarizeMomentumTrendsOutput } from '@/ai/flows/summarize-momentum-trends';
 import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-
 import { cn } from '@/lib/utils';
 import { getNewsFeed } from '@/app/actions';
 
