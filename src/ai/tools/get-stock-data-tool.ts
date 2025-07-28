@@ -8,11 +8,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { fetchStockData } from '@/services/market-data';
-import { StockDataSchema as MarketDataStockSchema } from '@/lib/types';
+import { StockData, StockDataSchema } from '@/lib/types';
 
-export const StockDataSchema = MarketDataStockSchema;
-
-export type StockData = z.infer<typeof StockDataSchema>;
 
 export const getStockData = ai.defineTool(
     {

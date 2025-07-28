@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StockChart } from '@/components/stock/stock-chart';
-import { NewsItem as NewsItemType } from '@/services/firestore';
+import { NewsItem } from '@/services/firestore';
 import { StockData } from '@/lib/types';
 import { format, subYears } from "date-fns";
 import { TrendingUp, TrendingDown, Minus, Newspaper, Bot, Loader2 } from 'lucide-react';
@@ -33,14 +33,20 @@ const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentim
     return <Badge variant="secondary" className={cn(commonClasses)}><Minus className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Neutral (${impactScore})`}</Badge>;
 };
 
-export default function StockDetailPage({ params }: { params: { ticker: string } }) {
+interface StockDetailPageProps {
+    params: {
+        ticker: string;
+    }
+}
+
+export default function StockDetailPage({ params }: StockDetailPageProps) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const ticker = params.ticker.toUpperCase();
 
   const [stockData, setStockData] = useState<StockData | null>(null);
-  const [news, setNews] = useState<NewsItemType[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isBriefingOpen, setBriefingOpen] = useState(false);
