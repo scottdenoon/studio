@@ -33,7 +33,13 @@ const SentimentDisplay = ({ sentiment, impactScore, showText = false }: { sentim
     return <Badge variant="secondary" className={cn(commonClasses)}><Minus className={cn(showText && "mr-1", "h-3 w-3")} /> {showText && `Neutral (${impactScore})`}</Badge>;
 };
 
-export default function StockDetailPage({ params }: { params: { ticker: string } }) {
+interface StockDetailPageProps {
+    params: {
+        ticker: string;
+    }
+}
+
+export default function StockDetailPage({ params }: StockDetailPageProps) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -192,5 +198,3 @@ export default function StockDetailPage({ params }: { params: { ticker: string }
     </div>
   );
 }
-
-    
