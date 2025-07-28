@@ -192,3 +192,5 @@ export default function StockDetailPage({ params }: { params: { ticker: string }
     </div>
   );
 }
+
+    

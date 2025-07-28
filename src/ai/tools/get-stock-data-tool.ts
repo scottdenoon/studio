@@ -20,9 +20,11 @@ export const getStockData = ai.defineTool(
         }),
         outputSchema: StockDataSchema,
     },
-    async ({ ticker }) => {
+    async ({ ticker }): Promise<StockData> => {
         // The core logic is now in the market-data service.
         // This tool simply acts as a wrapper for the AI to use.
         return await fetchStockData({ ticker });
     }
 );
+
+    
