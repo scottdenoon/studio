@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StockChart } from '@/components/stock/stock-chart';
-import { NewsItem as NewsItemType, StockData } from '@/services/firestore';
+import { NewsItem as NewsItemType } from '@/services/firestore';
+import { StockData } from '@/lib/types';
 import { format, subYears } from "date-fns";
 import { TrendingUp, TrendingDown, Minus, Newspaper, Bot, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
